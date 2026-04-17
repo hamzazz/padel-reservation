@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd /c \"flutter --version\")",
+      "Bash(powershell -Command \"flutter --version\")",
+      "Bash(flutter pub *)",
+      "Bash(cmd.exe /c \"cd C:\\\\Users\\\\pc\\\\padel_reservation && flutter pub get\")",
+      "Bash(powershell.exe -Command \"Get-Command adb -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(/mnt/c/Windows/System32/cmd.exe /c \"where adb\")",
+      "Read(//c/Windows/System32/**)",
+      "Read(//mnt/c/Users/pc/AppData/Local/Android/Sdk/platform-tools/**)",
+      "Bash(\"/c/Users/pc/AppData/Local/Android/Sdk/platform-tools/adb.exe\" devices *)",
+      "Bash(\"/c/flutter_windows_3.24.4-stable/flutter/bin/flutter.bat\" build *)",
+      "Bash(\"/c/Users/pc/AppData/Local/Android/Sdk/platform-tools/adb.exe\" install *)",
+      "Bash(\"/c/flutter_windows_3.24.4-stable/flutter/bin/flutter.bat\" pub *)",
+      "Bash(\"/c/flutter_windows_3.24.4-stable/flutter/bin/flutter.bat\" analyze *)"
+    ]
+  }
+}

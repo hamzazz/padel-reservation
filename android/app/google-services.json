@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "621755783134",
+    "project_id": "padel-club-maroc",
+    "storage_bucket": "padel-club-maroc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:621755783134:android:ba99979cb1d176f19e6f4f",
+        "android_client_info": {
+          "package_name": "com.padel.padel_reservation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYVSblXbCYYvQwoDN_hxdGxYYDl6mTqzU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
