@@ -4,49 +4,82 @@ import '../models/court.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_image_widget.dart';
 import 'booking_screen.dart';
+import 'courts_map_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _filter = 'all';
+
+  List<Court> get _filtered {
+    if (_filter == 'indoor') return availableCourts.where((c) => c.isIndoor).toList();
+    if (_filter == 'outdoor') return availableCourts.where((c) => !c.isIndoor).toList();
+    return availableCourts;
+  }
+
+  void _showCourtPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => _CourtPickerSheet(
+        onCourtSelected: (court) {
+          Navigator.pop(ctx);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => BookingScreen(preselectedCourt: court)),
+          );
+        },
+        onViewMap: () {
+          Navigator.pop(ctx);
+          Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const CourtsMapScreen()));
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final courts = _filtered;
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(context),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          _buildFilterBar(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
             child: Text(
-              'Terrains disponibles',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              '${courts.length} terrain${courts.length > 1 ? 's' : ''} disponible${courts.length > 1 ? 's' : ''}',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
           ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              itemCount: availableCourts.length,
-              itemBuilder: (ctx, i) => _CourtCard(court: availableCourts[i]),
+              itemCount: courts.length,
+              itemBuilder: (ctx, i) => _CourtCard(court: courts[i]),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.accent,
-        icon: const Icon(Icons.add, color: Colors.black87),
-        label: const Text('Réserver', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const BookingScreen()),
-        ),
+        icon: const Icon(Icons.calendar_today, color: Colors.black87, size: 18),
+        label: const Text('Réserver',
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        onPressed: _showCourtPicker,
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildFilterBar() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [AppTheme.primary, AppTheme.primaryDark],
@@ -54,46 +87,186 @@ class HomeScreen extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Row(
         children: [
-          const Text(
-            'Bienvenue !',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+          Expanded(
+            child: Row(
+              children: [
+                _chip('all', Icons.grid_view_rounded, 'Tous'),
+                const SizedBox(width: 8),
+                _chip('indoor', Icons.home_outlined, 'Couvert'),
+                const SizedBox(width: 8),
+                _chip('outdoor', Icons.wb_sunny_outlined, 'Extérieur'),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Réservez votre terrain',
-            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _statChip(Icons.sports_tennis, '${availableCourts.length} terrains'),
-              const SizedBox(width: 12),
-              _statChip(Icons.wb_sunny, '${availableCourts.where((c) => !c.isIndoor).length} ext.'),
-              const SizedBox(width: 12),
-              _statChip(Icons.home, '${availableCourts.where((c) => c.isIndoor).length} couverts'),
-            ],
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const CourtsMapScreen())),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white30),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.map_outlined, color: Colors.white, size: 15),
+                  SizedBox(width: 5),
+                  Text('Carte',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _statChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white24,
-        borderRadius: BorderRadius.circular(20),
+  Widget _chip(String value, IconData icon, String label) {
+    final sel = _filter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: sel ? Colors.white : Colors.white.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: sel ? AppTheme.primary : Colors.white),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: sel ? AppTheme.primary : Colors.white)),
+          ],
+        ),
       ),
-      child: Row(
+    );
+  }
+}
+
+class _CourtPickerSheet extends StatelessWidget {
+  final void Function(Court) onCourtSelected;
+  final VoidCallback onViewMap;
+  const _CourtPickerSheet({required this.onCourtSelected, required this.onViewMap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          16, 12, 16, MediaQuery.of(context).viewInsets.bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 14),
-          const SizedBox(width: 4),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+                color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Text('Choisir un terrain',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              TextButton.icon(
+                icon: const Icon(Icons.map_outlined, size: 16),
+                label: const Text('Voir carte', style: TextStyle(fontSize: 13)),
+                onPressed: onViewMap,
+              ),
+            ],
+          ),
+          const Divider(height: 16),
+          ...availableCourts.map((c) => _tile(c)),
+          const SizedBox(height: 4),
         ],
+      ),
+    );
+  }
+
+  Widget _tile(Court court) {
+    return Builder(
+      builder: (context) => InkWell(
+        onTap: () => onCourtSelected(court),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: court.isIndoor ? Colors.blue.shade50 : Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  court.isIndoor ? Icons.home_outlined : Icons.wb_sunny_outlined,
+                  color: court.isIndoor ? Colors.blue.shade700 : Colors.orange.shade700,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(court.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 2),
+                    Text(court.address,
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('${court.pricePerHour.toStringAsFixed(0)}€/h',
+                      style: const TextStyle(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: court.isIndoor ? Colors.blue.shade50 : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      court.isIndoor ? 'Couvert' : 'Extérieur',
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: court.isIndoor
+                              ? Colors.blue.shade700
+                              : Colors.orange.shade700),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.arrow_forward_ios, size: 13, color: Colors.grey.shade400),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -119,13 +292,11 @@ class _CourtCard extends StatelessWidget {
       child: InkWell(
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(
-              builder: (_) => BookingScreen(preselectedCourt: court)),
+          MaterialPageRoute(builder: (_) => BookingScreen(preselectedCourt: court)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Court image (visual drawing)
             CourtImageWidget(court: court, height: 150),
             Padding(
               padding: const EdgeInsets.all(14),
@@ -135,9 +306,31 @@ class _CourtCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(court.name,
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Text(court.name,
+                              style: const TextStyle(
+                                  fontSize: 17, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: court.isIndoor
+                                  ? Colors.blue.shade50
+                                  : Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              court.isIndoor ? 'Couvert' : 'Extérieur',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: court.isIndoor
+                                      ? Colors.blue.shade700
+                                      : Colors.orange.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
                       Text(
                         '${court.pricePerHour.toStringAsFixed(0)}€/h',
                         style: const TextStyle(
@@ -149,27 +342,21 @@ class _CourtCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(court.description,
-                      style: TextStyle(
-                          color: Colors.grey.shade600, fontSize: 13)),
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                   const SizedBox(height: 10),
-                  // Location row
                   Row(
                     children: [
                       Expanded(
                         child: Row(
                           children: [
                             Icon(Icons.location_on,
-                                size: 14,
-                                color: Colors.grey.shade500),
+                                size: 14, color: Colors.grey.shade500),
                             const SizedBox(width: 4),
                             Expanded(
-                              child: Text(
-                                court.address,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              child: Text(court.address,
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey.shade600),
+                                  overflow: TextOverflow.ellipsis),
                             ),
                           ],
                         ),

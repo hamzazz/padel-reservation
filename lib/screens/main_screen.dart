@@ -76,58 +76,111 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   PreferredSizeWidget? _buildAppBar(AuthProvider auth, int unread) {
-    // Only show AppBar on home tab
     if (_index != 0) return null;
-    return AppBar(
-      title: const Text('🎾 Padel Club',
-          style: TextStyle(fontWeight: FontWeight.bold)),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.calendar_month),
-          tooltip: 'Mes réservations',
-          onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const ReservationsScreen())),
-        ),
-        // Notifications bell
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen()),
-              ),
-            ),
-            if (unread > 0)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    unread > 9 ? '9+' : '$unread',
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 9),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        if (auth.isAdmin)
-          IconButton(
-            icon: const Icon(Icons.admin_panel_settings),
-            tooltip: 'Administration',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AdminScreen()),
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(62),
+      child: AppBar(
+        toolbarHeight: 62,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppTheme.primary, AppTheme.primaryDark],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-      ],
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text('🎾', style: TextStyle(fontSize: 20)),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Padel Club',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.3)),
+                if (auth.currentUser != null)
+                  Text('Bonjour, ${auth.currentUser!.firstName} 👋',
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.white70)),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          _iconBtn(
+            Icons.calendar_month_outlined,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ReservationsScreen())),
+          ),
+          _notifBtn(unread),
+          if (auth.isAdmin)
+            _iconBtn(
+              Icons.admin_panel_settings_outlined,
+              () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const AdminScreen())),
+            ),
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconBtn(IconData icon, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, color: Colors.white, size: 22),
+        ),
+      ),
+    );
+  }
+
+  Widget _notifBtn(int unread) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Stack(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.notifications_outlined,
+                  color: Colors.white, size: 22),
+            ),
+          ),
+          if (unread > 0)
+            Positioned(
+              right: 4,
+              top: 4,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                    color: Colors.red, shape: BoxShape.circle),
+                child: Text(unread > 9 ? '9+' : '$unread',
+                    style: const TextStyle(color: Colors.white, fontSize: 9)),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

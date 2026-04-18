@@ -53,8 +53,7 @@ class _MarketScreenState extends State<MarketScreen>
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(
@@ -69,9 +68,17 @@ class _MarketScreenState extends State<MarketScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(height: 16),
                   const Text('Vendre un article',
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: titleCtrl,
@@ -90,8 +97,7 @@ class _MarketScreenState extends State<MarketScreen>
                   TextFormField(
                     controller: priceCtrl,
                     keyboardType: TextInputType.number,
-                    decoration:
-                        const InputDecoration(labelText: 'Prix (€)'),
+                    decoration: const InputDecoration(labelText: 'Prix (€)'),
                     validator: (v) =>
                         (v == null || double.tryParse(v) == null)
                             ? 'Prix invalide'
@@ -100,11 +106,10 @@ class _MarketScreenState extends State<MarketScreen>
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     value: category,
-                    decoration:
-                        const InputDecoration(labelText: 'Catégorie'),
+                    decoration: const InputDecoration(labelText: 'Catégorie'),
                     items: productCategories
-                        .map((c) => DropdownMenuItem(
-                            value: c, child: Text(c)))
+                        .map((c) =>
+                            DropdownMenuItem(value: c, child: Text(c)))
                         .toList(),
                     onChanged: (v) => setS(() => category = v!),
                   ),
@@ -116,16 +121,14 @@ class _MarketScreenState extends State<MarketScreen>
                         label: const Text('Neuf'),
                         selected: isNew,
                         onSelected: (_) => setS(() => isNew = true),
-                        selectedColor:
-                            Colors.green.withOpacity(0.2),
+                        selectedColor: Colors.green.withOpacity(0.2),
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
                         label: const Text('Occasion'),
                         selected: !isNew,
                         onSelected: (_) => setS(() => isNew = false),
-                        selectedColor:
-                            Colors.orange.withOpacity(0.2),
+                        selectedColor: Colors.orange.withOpacity(0.2),
                       ),
                     ],
                   ),
@@ -139,8 +142,7 @@ class _MarketScreenState extends State<MarketScreen>
                         sellerEmoji: user.avatarEmoji,
                         title: titleCtrl.text.trim(),
                         description: descCtrl.text.trim(),
-                        price:
-                            double.parse(priceCtrl.text),
+                        price: double.parse(priceCtrl.text),
                         isNew: isNew,
                         category: category,
                       );
@@ -148,8 +150,7 @@ class _MarketScreenState extends State<MarketScreen>
                       _load();
                     },
                     style: ElevatedButton.styleFrom(
-                        minimumSize:
-                            const Size(double.infinity, 48)),
+                        minimumSize: const Size(double.infinity, 48)),
                     child: const Text('Publier l\'annonce'),
                   ),
                   const SizedBox(height: 20),
@@ -165,38 +166,94 @@ class _MarketScreenState extends State<MarketScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Marché'),
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          indicatorColor: AppTheme.accent,
-          tabs: const [Tab(text: 'Annonces'), Tab(text: 'Mes ventes')],
-        ),
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: _tabs,
+                    children: [
+                      _buildList(_all),
+                      _buildList(_mine, isMine: true),
+                    ],
+                  ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.accent,
         icon: const Icon(Icons.add, color: Colors.black87),
         label: const Text('Vendre',
-            style: TextStyle(
-                color: Colors.black87, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         onPressed: _addProduct,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabs,
-              children: [
-                _buildList(_all),
-                _buildList(_mine, isMine: true),
-              ],
-            ),
     );
   }
 
-  Widget _buildList(List<Product> products,
-      {bool isMine = false}) {
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primary, AppTheme.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('🛒', style: TextStyle(fontSize: 18)),
+                ),
+                const SizedBox(width: 10),
+                const Text('Marché',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_all.length} article${_all.length != 1 ? 's' : ''}',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TabBar(
+            controller: _tabs,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white60,
+            indicatorColor: AppTheme.accent,
+            indicatorWeight: 3,
+            dividerColor: Colors.transparent,
+            tabs: const [
+              Tab(text: 'Annonces'),
+              Tab(text: 'Mes ventes'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList(List<Product> products, {bool isMine = false}) {
     if (products.isEmpty) {
       return Center(
         child: Column(
@@ -205,9 +262,7 @@ class _MarketScreenState extends State<MarketScreen>
             Icon(Icons.storefront, size: 72, color: Colors.grey.shade300),
             const SizedBox(height: 12),
             Text(
-              isMine
-                  ? 'Vous n\'avez aucune annonce'
-                  : 'Aucun article disponible',
+              isMine ? 'Vous n\'avez aucune annonce' : 'Aucun article disponible',
               style: TextStyle(color: Colors.grey.shade500),
             ),
           ],
@@ -273,8 +328,8 @@ class _ProductCard extends StatelessWidget {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: product.isNew
                         ? Colors.green.withOpacity(0.1)
@@ -285,8 +340,7 @@ class _ProductCard extends StatelessWidget {
                     product.isNew ? 'Neuf' : 'Occasion',
                     style: TextStyle(
                       fontSize: 11,
-                      color:
-                          product.isNew ? Colors.green : Colors.orange,
+                      color: product.isNew ? Colors.green : Colors.orange,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -299,8 +353,8 @@ class _ProductCard extends StatelessWidget {
                     fontSize: 16, fontWeight: FontWeight.bold)),
             if (product.description.isNotEmpty)
               Text(product.description,
-                  style: TextStyle(
-                      color: Colors.grey.shade600, fontSize: 13)),
+                  style:
+                      TextStyle(color: Colors.grey.shade600, fontSize: 13)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

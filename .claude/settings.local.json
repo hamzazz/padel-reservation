@@ -13,7 +13,9 @@
       "Bash(\"/c/flutter_windows_3.24.4-stable/flutter/bin/flutter.bat\" build *)",
       "Bash(\"/c/Users/pc/AppData/Local/Android/Sdk/platform-tools/adb.exe\" install *)",
       "Bash(\"/c/flutter_windows_3.24.4-stable/flutter/bin/flutter.bat\" pub *)",
-      "Bash(\"/c/flutter_windows_3.24.4-stable/flutter/bin/flutter.bat\" analyze *)"
+      "Bash(\"/c/flutter_windows_3.24.4-stable/flutter/bin/flutter.bat\" analyze *)",
+      "Bash(\"/c/Users/pc/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s RFCTC0LQLVN install -r \"C:\\\\Users\\\\pc\\\\padel_reservation\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-debug.apk\")",
+      "Bash(grep -E '\\\\.dart$')"
     ]
   }
 }

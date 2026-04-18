@@ -6,6 +6,7 @@ import '../models/tournament.dart';
 import '../services/notification_service.dart';
 import '../services/tournament_service.dart';
 import '../state/auth_provider.dart';
+import '../theme/app_theme.dart';
 
 class TournamentsScreen extends StatefulWidget {
   const TournamentsScreen({super.key});
@@ -44,8 +45,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(
@@ -60,9 +60,17 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(height: 16),
                   const Text('Créer un tournoi',
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: nameCtrl,
@@ -81,11 +89,10 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<Court>(
                     value: court,
-                    decoration:
-                        const InputDecoration(labelText: 'Terrain'),
+                    decoration: const InputDecoration(labelText: 'Terrain'),
                     items: availableCourts
-                        .map((c) => DropdownMenuItem(
-                            value: c, child: Text(c.name)))
+                        .map((c) =>
+                            DropdownMenuItem(value: c, child: Text(c.name)))
                         .toList(),
                     onChanged: (v) => setS(() => court = v!),
                   ),
@@ -106,8 +113,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                         context: ctx,
                         initialDate: date,
                         firstDate: DateTime.now(),
-                        lastDate: DateTime.now()
-                            .add(const Duration(days: 180)),
+                        lastDate:
+                            DateTime.now().add(const Duration(days: 180)),
                       );
                       if (picked != null) setS(() => date = picked);
                     },
@@ -118,14 +125,12 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                       ChoiceChip(
                           label: const Text('Simple'),
                           selected: format == 'single',
-                          onSelected: (_) =>
-                              setS(() => format = 'single')),
+                          onSelected: (_) => setS(() => format = 'single')),
                       const SizedBox(width: 8),
                       ChoiceChip(
                           label: const Text('Double'),
                           selected: format == 'double',
-                          onSelected: (_) =>
-                              setS(() => format = 'double')),
+                          onSelected: (_) => setS(() => format = 'double')),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -150,8 +155,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                       _load();
                     },
                     style: ElevatedButton.styleFrom(
-                        minimumSize:
-                            const Size(double.infinity, 48)),
+                        minimumSize: const Size(double.infinity, 48)),
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -165,93 +169,117 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = context.read<AuthProvider>().isAdmin;
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 160,
-            pinned: true,
-            backgroundColor: const Color(0xFF1A237E),
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text('Tournois',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(0xFF1A237E),
-                          Color(0xFF283593),
-                          Color(0xFF3949AB),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withOpacity(0.4),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                      ),
-                    ),
-                  ),
-                  const Center(
-                    child: Text('🏆',
-                        style: TextStyle(fontSize: 60)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
             child: _loading
-                ? const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
+                ? const Center(child: CircularProgressIndicator())
                 : _tournaments.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(40),
-                        child: Center(
-                          child: Text(
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('🏆',
+                                style: TextStyle(
+                                    fontSize: 64,
+                                    color: Colors.grey.shade300)),
+                            const SizedBox(height: 12),
+                            Text(
                               'Aucun tournoi\nCréez le premier !',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  color: Colors.grey, fontSize: 15)),
+                                  color: Colors.grey.shade500, fontSize: 15),
+                            ),
+                          ],
                         ),
                       )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _tournaments.length,
-                        itemBuilder: (ctx, i) =>
-                            _TournamentCard(
-                          tournament: _tournaments[i],
-                          onRefresh: _load,
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _tournaments.length,
+                          itemBuilder: (ctx, i) => _TournamentCard(
+                            tournament: _tournaments[i],
+                            onRefresh: _load,
+                          ),
                         ),
                       ),
           ),
         ],
       ),
-      floatingActionButton: context.read<AuthProvider>().isAdmin
+      floatingActionButton: isAdmin
           ? FloatingActionButton.extended(
-              backgroundColor: const Color(0xFF3949AB),
-              icon: const Icon(Icons.emoji_events, color: Colors.white),
+              backgroundColor: AppTheme.accent,
+              icon: const Icon(Icons.emoji_events, color: Colors.black87),
               label: const Text('Créer tournoi',
                   style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+                      color: Colors.black87, fontWeight: FontWeight.bold)),
               onPressed: _create,
             )
           : null,
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primary, AppTheme.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text('🏆', style: TextStyle(fontSize: 20)),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Tournois',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+              Text(
+                '${_tournaments.length} tournoi${_tournaments.length != 1 ? 's' : ''}',
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.emoji_events_outlined,
+                    color: Colors.white, size: 13),
+                const SizedBox(width: 4),
+                Text(
+                  '${_tournaments.where((t) => t.status == 'open').length} ouverts',
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -260,21 +288,27 @@ class _TournamentCard extends StatelessWidget {
   final Tournament tournament;
   final VoidCallback onRefresh;
 
-  const _TournamentCard(
-      {required this.tournament, required this.onRefresh});
+  const _TournamentCard({required this.tournament, required this.onRefresh});
 
   void _showParticipants(BuildContext context) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -286,19 +320,18 @@ class _TournamentCard extends StatelessWidget {
                 Text(
                   '${tournament.participantNames.length}/${tournament.maxParticipants}',
                   style: const TextStyle(
-                      color: Color(0xFF3949AB),
-                      fontWeight: FontWeight.bold),
+                      color: AppTheme.primary, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             LinearProgressIndicator(
               value: tournament.maxParticipants > 0
                   ? tournament.participantNames.length /
                       tournament.maxParticipants
                   : 0,
               backgroundColor: Colors.grey.shade200,
-              color: const Color(0xFF3949AB),
+              color: AppTheme.primary,
               borderRadius: BorderRadius.circular(4),
               minHeight: 6,
             ),
@@ -309,18 +342,15 @@ class _TournamentCard extends StatelessWidget {
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
-                  backgroundColor:
-                      const Color(0xFF3949AB).withOpacity(0.12),
+                  backgroundColor: AppTheme.primary.withOpacity(0.12),
                   child: Text(
                     name.isNotEmpty ? name[0].toUpperCase() : '?',
                     style: const TextStyle(
-                        color: Color(0xFF3949AB),
-                        fontWeight: FontWeight.bold),
+                        color: AppTheme.primary, fontWeight: FontWeight.bold),
                   ),
                 ),
                 title: Text(name,
-                    style:
-                        const TextStyle(fontWeight: FontWeight.w600)),
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
                 trailing: idx == 0
                     ? Container(
                         padding: const EdgeInsets.symmetric(
@@ -341,10 +371,8 @@ class _TournamentCard extends StatelessWidget {
                             fontWeight: FontWeight.bold)),
               );
             }),
-            // Empty slots
             ...List.generate(
-              tournament.maxParticipants -
-                  tournament.participantNames.length,
+              tournament.maxParticipants - tournament.participantNames.length,
               (i) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
@@ -382,11 +410,10 @@ class _TournamentCard extends StatelessWidget {
         ));
         return;
       }
-      await auth.debitWallet(tournament.entryFee,
-          'Inscription tournoi: ${tournament.name}');
+      await auth.debitWallet(
+          tournament.entryFee, 'Inscription tournoi: ${tournament.name}');
     }
-    final ok = await svc.join(
-        tournament.id, user.id, user.fullName);
+    final ok = await svc.join(tournament.id, user.id, user.fullName);
     if (ok) {
       await notif.push(
         userId: user.id,
@@ -431,13 +458,12 @@ class _TournamentCard extends StatelessWidget {
                           fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: statusColor.withOpacity(0.3)),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
                   child: Text(
                     tournament.status.toUpperCase(),
@@ -453,8 +479,8 @@ class _TournamentCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(tournament.description,
-                    style: TextStyle(
-                        color: Colors.grey.shade600, fontSize: 13)),
+                    style:
+                        TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               ),
             const Divider(height: 14),
             Wrap(
@@ -472,7 +498,6 @@ class _TournamentCard extends StatelessWidget {
                     tournament.format == 'single' ? 'Simple' : 'Double'),
               ],
             ),
-            // ── Participants list ─────────────────────────────────
             if (tournament.participantNames.isNotEmpty) ...[
               const SizedBox(height: 12),
               GestureDetector(
@@ -480,28 +505,26 @@ class _TournamentCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3949AB).withOpacity(0.06),
+                    color: AppTheme.primary.withOpacity(0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color:
-                            const Color(0xFF3949AB).withOpacity(0.15)),
+                        color: AppTheme.primary.withOpacity(0.15)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Joueurs inscrits (${tournament.participantNames.length}/${tournament.maxParticipants})',
                             style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF3949AB)),
+                                color: AppTheme.primary),
                           ),
                           const Icon(Icons.expand_more,
-                              size: 16, color: Color(0xFF3949AB)),
+                              size: 16, color: AppTheme.primary),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -515,8 +538,7 @@ class _TournamentCard extends StatelessWidget {
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius:
-                                        BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                         color: Colors.grey.shade200),
                                   ),
@@ -525,27 +547,22 @@ class _TournamentCard extends StatelessWidget {
                                     children: [
                                       CircleAvatar(
                                         radius: 10,
-                                        backgroundColor: const Color(
-                                                0xFF3949AB)
-                                            .withOpacity(0.15),
+                                        backgroundColor:
+                                            AppTheme.primary.withOpacity(0.15),
                                         child: Text(
                                           name.isNotEmpty
                                               ? name[0].toUpperCase()
                                               : '?',
                                           style: const TextStyle(
                                               fontSize: 10,
-                                              color:
-                                                  Color(0xFF3949AB),
-                                              fontWeight:
-                                                  FontWeight.bold),
+                                              color: AppTheme.primary,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                       const SizedBox(width: 5),
-                                      Text(
-                                        name.split(' ').first,
-                                        style: const TextStyle(
-                                            fontSize: 12),
-                                      ),
+                                      Text(name.split(' ').first,
+                                          style:
+                                              const TextStyle(fontSize: 12)),
                                     ],
                                   ),
                                 ))
@@ -557,8 +574,7 @@ class _TournamentCard extends StatelessWidget {
                           child: Text(
                             '+${tournament.participantNames.length - 6} autres',
                             style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500),
+                                fontSize: 11, color: Colors.grey.shade500),
                           ),
                         ),
                     ],
@@ -566,7 +582,6 @@ class _TournamentCard extends StatelessWidget {
                 ),
               ),
             ],
-            // ── Actions ───────────────────────────────────────────
             if (tournament.status == 'open' && !isIn) ...[
               const SizedBox(height: 10),
               ElevatedButton.icon(
@@ -574,7 +589,6 @@ class _TournamentCard extends StatelessWidget {
                 label: const Text('S\'inscrire'),
                 onPressed: () => _join(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3949AB),
                   minimumSize: const Size(double.infinity, 42),
                 ),
               ),
@@ -582,8 +596,8 @@ class _TournamentCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -591,8 +605,7 @@ class _TournamentCard extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle,
-                          color: Colors.green, size: 16),
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
                       SizedBox(width: 6),
                       Text('Inscrit',
                           style: TextStyle(
@@ -615,8 +628,8 @@ class _TournamentCard extends StatelessWidget {
         Icon(icon, size: 13, color: Colors.grey.shade600),
         const SizedBox(width: 3),
         Text(text,
-            style: TextStyle(
-                fontSize: 12, color: Colors.grey.shade700)),
+            style:
+                TextStyle(fontSize: 12, color: Colors.grey.shade700)),
       ],
     );
   }

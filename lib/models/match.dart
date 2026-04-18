@@ -35,6 +35,7 @@ class MatchPlayer {
 
 class Match {
   final String id;
+  final String organizerId;
   final String courtId;
   final String courtName;
   final DateTime date;
@@ -48,6 +49,7 @@ class Match {
 
   Match({
     required this.id,
+    this.organizerId = '',
     required this.courtId,
     required this.courtName,
     required this.date,
@@ -65,6 +67,7 @@ class Match {
 
   Match copyWith({List<MatchPlayer>? players, String? status}) => Match(
         id: id,
+        organizerId: organizerId,
         courtId: courtId,
         courtName: courtName,
         date: date,
@@ -79,6 +82,7 @@ class Match {
 
   Map<String, dynamic> toMap() => {
         'id': id,
+        'organizerId': organizerId,
         'courtId': courtId,
         'courtName': courtName,
         'date': date.toIso8601String(),
@@ -93,6 +97,7 @@ class Match {
 
   factory Match.fromMap(Map<String, dynamic> map) => Match(
         id: map['id'],
+        organizerId: map['organizerId'] ?? '',
         courtId: map['courtId'],
         courtName: map['courtName'],
         date: DateTime.parse(map['date']),

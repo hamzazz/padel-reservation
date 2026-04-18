@@ -209,14 +209,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isOwnProfile ? 'Mon profil' : u.fullName),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppTheme.primary, AppTheme.primaryDark],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: isOwnProfile
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(u.avatarEmoji,
+                      style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  const Text('Mon profil',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
+                ],
+              )
+            : Text(u.fullName,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
           if (isOwnProfile)
-            IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: _editProfile),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: _editProfile,
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.edit_outlined, color: Colors.white),
+                ),
+              ),
+            ),
           if (!isOwnProfile && me != null)
             PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
               onSelected: (v) async {
                 if (v == 'friend') {
                   if (isFriend)
@@ -241,8 +275,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 PopupMenuItem(
                   value: 'block',
-                  child: Text(
-                      isBlocked ? 'Débloquer' : 'Bloquer'),
+                  child:
+                      Text(isBlocked ? 'Débloquer' : 'Bloquer'),
                 ),
               ],
             ),
@@ -251,60 +285,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Profile header
+          // Profile header card with gradient top
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text(u.avatarEmoji,
-                      style: const TextStyle(fontSize: 64)),
-                  const SizedBox(height: 10),
-                  Text(u.fullName,
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(u.email,
-                      style: TextStyle(
-                          color: Colors.grey.shade600, fontSize: 13)),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.primary, AppTheme.primaryDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Column(
                     children: [
-                      _badge('Niveau ${u.level}',
-                          AppTheme.primary, Icons.star),
-                      const SizedBox(width: 10),
-                      _badge(levelLabels[u.level], Colors.orange,
-                          Icons.sports_tennis),
-                      if (u.isAdmin) ...[
-                        const SizedBox(width: 10),
-                        _badge('Admin', Colors.red, Icons.admin_panel_settings),
+                      Text(u.avatarEmoji,
+                          style: const TextStyle(fontSize: 60)),
+                      const SizedBox(height: 8),
+                      Text(u.fullName,
+                          style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white)),
+                      const SizedBox(height: 4),
+                      Text(u.email,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _badge('Niveau ${u.level}',
+                              AppTheme.primary, Icons.star),
+                          const SizedBox(width: 10),
+                          _badge(levelLabels[u.level], Colors.orange,
+                              Icons.sports_tennis),
+                          if (u.isAdmin) ...[
+                            const SizedBox(width: 10),
+                            _badge(
+                                'Admin', Colors.red, Icons.admin_panel_settings),
+                          ],
+                        ],
+                      ),
+                      if (_avgRating > 0) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ...List.generate(5, (i) {
+                              return Icon(
+                                i < _avgRating.round()
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                color: Colors.amber,
+                                size: 20,
+                              );
+                            }),
+                            const SizedBox(width: 6),
+                            Text(_avgRating.toStringAsFixed(1),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ],
                     ],
                   ),
-                  if (_avgRating > 0) ...[
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ...List.generate(5, (i) {
-                          return Icon(
-                            i < _avgRating.round()
-                                ? Icons.star
-                                : Icons.star_border,
-                            color: Colors.amber,
-                            size: 20,
-                          );
-                        }),
-                        const SizedBox(width: 6),
-                        Text(_avgRating.toStringAsFixed(1),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
