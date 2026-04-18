@@ -42,16 +42,25 @@ class AuthService {
         blockedIds: [],
         createdAt: DateTime.now(),
       );
-      await _users.doc(uid).set(user.toMap());
+      try {
+        await _users.doc(uid).set(user.toMap()).timeout(
+          const Duration(seconds: 15),
+        );
+      } catch (firestoreErr) {
+        // Auth succeeded but Firestore failed — rules probablement verrouillées
+        return 'Compte créé mais profil non sauvegardé. Vérifiez les règles Firestore dans Firebase Console > Firestore > Règles. Erreur: $firestoreErr';
+      }
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') return 'Cet email est déjà utilisé';
       if (e.code == 'weak-password') return 'Mot de passe trop faible (min. 6 caractères)';
       if (e.code == 'invalid-email') return 'Email invalide';
       if (e.code == 'configuration-not-found' || e.code == 'internal-error') {
-        return 'Firebase Auth non configuré — activez Email/Mot de passe dans Firebase Console > Authentication > Méthode de connexion';
+        return 'Firebase Auth non activé — allez dans Firebase Console > Authentication > Méthode de connexion > Email/Mot de passe > Activer';
       }
-      return '[${e.code}] ${e.message ?? 'Erreur inscription'}';
+      return '[Auth: ${e.code}] ${e.message ?? 'Erreur inscription'}';
+    } catch (e) {
+      return 'Erreur inattendue: $e';
     }
   }
 
@@ -63,8 +72,15 @@ class AuthService {
         email: email.trim().toLowerCase(),
         password: password,
       );
-      final user = await _getUserDoc(cred.user!.uid);
-      if (user == null) return (user: null, error: 'Profil introuvable');
+      AppUser? user;
+      try {
+        user = await _getUserDoc(cred.user!.uid).timeout(
+          const Duration(seconds: 15),
+        );
+      } catch (firestoreErr) {
+        return (user: null, error: 'Connecté mais profil inaccessible. Vérifiez les règles Firestore. Erreur: $firestoreErr');
+      }
+      if (user == null) return (user: null, error: 'Profil introuvable dans Firestore');
       return (user: user, error: null);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
@@ -74,9 +90,11 @@ class AuthService {
         return (user: null, error: 'Mot de passe incorrect');
       }
       if (e.code == 'configuration-not-found' || e.code == 'internal-error') {
-        return (user: null, error: 'Firebase Auth non configuré — activez Email/Mot de passe dans Firebase Console > Authentication > Méthode de connexion');
+        return (user: null, error: 'Firebase Auth non activé — Firebase Console > Authentication > Email/Mot de passe > Activer');
       }
-      return (user: null, error: '[${e.code}] ${e.message ?? 'Erreur connexion'}');
+      return (user: null, error: '[Auth: ${e.code}] ${e.message ?? 'Erreur connexion'}');
+    } catch (e) {
+      return (user: null, error: 'Erreur inattendue: $e');
     }
   }
 
@@ -125,9 +143,15 @@ class AuthService {
 
   // ── Get current user ──────────────────────────────────────────────────
   Future<AppUser?> getCurrentUser() async {
-    final firebaseUser = _auth.currentUser;
-    if (firebaseUser == null) return null;
-    return _getUserDoc(firebaseUser.uid);
+    try {
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser == null) return null;
+      return await _getUserDoc(firebaseUser.uid).timeout(
+        const Duration(seconds: 15),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   // ── Update user profile ───────────────────────────────────────────────
@@ -137,16 +161,12 @@ class AuthService {
 
   // ── Get all users ────────────────────────────────────────────────────
   Future<List<AppUser>> getAllUsers() async {
-    final snap = await _users.get();
-    return snap.docs.map((d) => AppUser.fromMap(_toMap(d))).toList();
-  }
-
-  // ── Stream current user (for real-time updates) ───────────────────────
-  Stream<AppUser?> userStream(String uid) {
-    return _users.doc(uid).snapshots().map((snap) {
-      if (!snap.exists) return null;
-      return AppUser.fromMap(_toMap(snap));
-    });
+    try {
+      final snap = await _users.get();
+      return snap.docs.map((d) => AppUser.fromMap(_toMap(d))).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   // ── Firebase Auth state stream ────────────────────────────────────────
@@ -160,8 +180,7 @@ class AuthService {
   }
 
   Map<String, dynamic> _toMap(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
-    return _convertTimestamps(data);
+    return _convertTimestamps(doc.data()!);
   }
 
   static Map<String, dynamic> _convertTimestamps(Map<String, dynamic> map) {

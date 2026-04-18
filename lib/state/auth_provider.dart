@@ -36,12 +36,16 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<String?> login(String email, String password) async {
-    final result = await _auth.login(email, password);
-    if (result.error != null) return result.error;
-    _user = result.user;
-    await _refreshNotifCount();
-    notifyListeners();
-    return null;
+    try {
+      final result = await _auth.login(email, password);
+      if (result.error != null) return result.error;
+      _user = result.user;
+      await _refreshNotifCount();
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return 'Erreur connexion: $e';
+    }
   }
 
   Future<String?> loginWithGoogle() async {
@@ -64,19 +68,23 @@ class AuthProvider extends ChangeNotifier {
     required int level,
     required String avatarEmoji,
   }) async {
-    final err = await _auth.register(
-      email: email,
-      password: password,
-      firstName: firstName,
-      lastName: lastName,
-      phone: phone,
-      level: level,
-      avatarEmoji: avatarEmoji,
-    );
-    if (err != null) return err;
-    _user = await _auth.getCurrentUser();
-    notifyListeners();
-    return null;
+    try {
+      final err = await _auth.register(
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+        phone: phone,
+        level: level,
+        avatarEmoji: avatarEmoji,
+      );
+      if (err != null) return err;
+      _user = await _auth.getCurrentUser();
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return 'Erreur inscription: $e';
+    }
   }
 
   Future<void> logout() async {
