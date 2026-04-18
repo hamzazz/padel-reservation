@@ -47,9 +47,10 @@ class AuthService {
           const Duration(seconds: 15),
         );
       } catch (firestoreErr) {
-        // Auth succeeded but Firestore failed — rules probablement verrouillées
-        return 'Compte créé mais profil non sauvegardé. Vérifiez les règles Firestore dans Firebase Console > Firestore > Règles. Erreur: $firestoreErr';
+        return 'Compte créé mais profil non sauvegardé. Vérifiez les règles Firestore. Erreur: $firestoreErr';
       }
+      // Déconnexion immédiate — l'utilisateur doit se connecter manuellement
+      await _auth.signOut();
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') return 'Cet email est déjà utilisé';

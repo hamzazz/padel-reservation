@@ -198,11 +198,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Scaffold(
           body: Center(child: CircularProgressIndicator()));
     }
-    if (_viewUser == null) {
+    if (_viewUser == null && me == null) {
       return const Scaffold(
           body: Center(child: Text('Joueur introuvable')));
     }
-    final u = _viewUser!;
+    // Pour le profil personnel, utiliser currentUser du provider (toujours à jour)
+    final u = (isOwnProfile ? me : _viewUser) ?? _viewUser!;
     final isFriend = me?.friendIds.contains(u.id) ?? false;
     final isBlocked = me?.blockedIds.contains(u.id) ?? false;
 

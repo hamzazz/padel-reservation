@@ -6,11 +6,14 @@ class ReviewService {
   final _col = FirebaseFirestore.instance.collection('reviews');
 
   Future<List<PlayerReview>> getForPlayer(String targetId) async {
-    final snap = await _col
-        .where('targetId', isEqualTo: targetId)
-        .orderBy('createdAt', descending: true)
-        .get();
-    return snap.docs.map((d) => PlayerReview.fromMap(_ts(d.data()))).toList();
+    try {
+      final snap = await _col.where('targetId', isEqualTo: targetId).get();
+      final list = snap.docs.map((d) => PlayerReview.fromMap(_ts(d.data()))).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<double> averageRating(String targetId) async {
@@ -20,11 +23,15 @@ class ReviewService {
   }
 
   Future<bool> hasReviewed(String reviewerId, String targetId) async {
-    final snap = await _col
-        .where('reviewerId', isEqualTo: reviewerId)
-        .where('targetId', isEqualTo: targetId)
-        .get();
-    return snap.docs.isNotEmpty;
+    try {
+      final snap = await _col
+          .where('reviewerId', isEqualTo: reviewerId)
+          .where('targetId', isEqualTo: targetId)
+          .get();
+      return snap.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<String> submitReview({
@@ -35,7 +42,6 @@ class ReviewService {
     required double rating,
     required String comment,
   }) async {
-    // Replace existing review by same reviewer
     final existing = await _col
         .where('reviewerId', isEqualTo: reviewerId)
         .where('targetId', isEqualTo: targetId)
@@ -44,7 +50,6 @@ class ReviewService {
     for (final doc in existing.docs) {
       batch.delete(doc.reference);
     }
-
     final id = const Uuid().v4();
     final now = DateTime.now();
     batch.set(_col.doc(id), {

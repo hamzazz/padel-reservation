@@ -6,11 +6,16 @@ class WalletService {
   final _col = FirebaseFirestore.instance.collection('wallet_transactions');
 
   Future<List<WalletTransaction>> getTransactions(String userId) async {
-    final snap = await _col
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .get();
-    return snap.docs.map((d) => WalletTransaction.fromMap(_ts(d.data()))).toList();
+    try {
+      final snap = await _col.where('userId', isEqualTo: userId).get();
+      final list = snap.docs
+          .map((d) => WalletTransaction.fromMap(_ts(d.data())))
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<WalletTransaction> addTransaction({

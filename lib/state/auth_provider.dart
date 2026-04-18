@@ -49,14 +49,18 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<String?> loginWithGoogle() async {
-    final result = await _auth.loginWithGoogle();
-    if (result.error != null && result.error != 'Annulé') return result.error;
-    if (result.user != null) {
-      _user = result.user;
-      await _refreshNotifCount();
-      notifyListeners();
+    try {
+      final result = await _auth.loginWithGoogle();
+      if (result.error != null && result.error != 'Annulé') return result.error;
+      if (result.user != null) {
+        _user = result.user;
+        await _refreshNotifCount();
+        notifyListeners();
+      }
+      return null;
+    } catch (e) {
+      return 'Erreur Google: $e';
     }
-    return null;
   }
 
   Future<String?> register({
@@ -79,8 +83,7 @@ class AuthProvider extends ChangeNotifier {
         avatarEmoji: avatarEmoji,
       );
       if (err != null) return err;
-      _user = await _auth.getCurrentUser();
-      notifyListeners();
+      // authStateChanges listener in init() will set _user automatically
       return null;
     } catch (e) {
       return 'Erreur inscription: $e';

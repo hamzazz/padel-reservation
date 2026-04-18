@@ -44,12 +44,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
           level: _level,
           avatarEmoji: _avatar,
         );
-    if (mounted) setState(() => _loading = false);
-    if (err != null && mounted) {
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (err != null) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(err), backgroundColor: Colors.red));
+    } else {
+      // Succès — rediriger vers login avec message
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Compte créé ! Connectez-vous maintenant.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 3),
+      ));
+      Navigator.pop(context); // retour vers login
     }
-    // On success AuthProvider notifies → main.dart navigates to MainScreen
   }
 
   @override

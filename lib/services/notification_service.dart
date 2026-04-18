@@ -6,19 +6,26 @@ class NotificationService {
   final _col = FirebaseFirestore.instance.collection('notifications');
 
   Future<List<AppNotification>> getForUser(String userId) async {
-    final snap = await _col
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .get();
-    return snap.docs.map((d) => AppNotification.fromMap(_ts(d.data()))).toList();
+    try {
+      final snap = await _col.where('userId', isEqualTo: userId).get();
+      final list = snap.docs.map((d) => AppNotification.fromMap(_ts(d.data()))).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<int> unreadCount(String userId) async {
-    final snap = await _col
-        .where('userId', isEqualTo: userId)
-        .where('isRead', isEqualTo: false)
-        .get();
-    return snap.docs.length;
+    try {
+      final snap = await _col
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+      return snap.docs.length;
+    } catch (e) {
+      return 0;
+    }
   }
 
   Future<void> push({
@@ -40,15 +47,17 @@ class NotificationService {
   }
 
   Future<void> markAllRead(String userId) async {
-    final snap = await _col
-        .where('userId', isEqualTo: userId)
-        .where('isRead', isEqualTo: false)
-        .get();
-    final batch = FirebaseFirestore.instance.batch();
-    for (final doc in snap.docs) {
-      batch.update(doc.reference, {'isRead': true});
-    }
-    await batch.commit();
+    try {
+      final snap = await _col
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snap.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+      await batch.commit();
+    } catch (_) {}
   }
 
   Future<void> delete(String id) async {
