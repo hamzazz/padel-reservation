@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../models/court.dart';
 import '../models/match.dart';
 import '../services/match_service.dart';
 import '../services/user_preferences.dart';
@@ -222,6 +224,22 @@ class _MatchCard extends StatelessWidget {
     required this.onTap,
   });
 
+  Future<void> _openMaps() async {
+    Court? court;
+    try {
+      court = availableCourts.firstWhere((c) => c.id == match.courtId);
+    } catch (_) {}
+    final query = court != null
+        ? '${court.latitude},${court.longitude}'
+        : Uri.encodeComponent(match.courtName);
+    final uri = Uri.parse('https://maps.google.com/maps?q=$query');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      await launchUrl(uri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isFull = match.isFull;
@@ -334,6 +352,32 @@ class _MatchCard extends StatelessWidget {
                   const Icon(Icons.arrow_forward_ios,
                       size: 14, color: Colors.grey),
                 ],
+              ),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: _openMaps,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on, size: 14, color: AppTheme.primary),
+                      const SizedBox(width: 5),
+                      Text(match.courtName,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 5),
+                      const Icon(Icons.open_in_new, size: 12, color: AppTheme.primary),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

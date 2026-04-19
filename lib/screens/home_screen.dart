@@ -278,9 +278,11 @@ class _CourtCard extends StatelessWidget {
 
   Future<void> _openMap() async {
     final uri = Uri.parse(
-        'https://maps.google.com/?q=${court.latitude},${court.longitude}');
-    if (await canLaunchUrl(uri)) {
+        'https://maps.google.com/maps?q=${court.latitude},${court.longitude}');
+    try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      await launchUrl(uri);
     }
   }
 

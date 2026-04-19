@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import '../models/court.dart';
 import '../models/match.dart';
@@ -67,6 +68,16 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
       return availableCourts.firstWhere((c) => c.id == r.courtId);
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> _openMaps(Court court) async {
+    final uri = Uri.parse(
+        'https://maps.google.com/maps?q=${court.latitude},${court.longitude}');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      await launchUrl(uri);
     }
   }
 
@@ -456,6 +467,40 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                                   fontSize: 12, color: Colors.grey.shade600)),
                         ],
                       ),
+                      if (court != null) ...[
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () => _openMaps(court),
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_on,
+                                  size: 12,
+                                  color: isSelected
+                                      ? AppTheme.primary
+                                      : Colors.grey.shade500),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  court.address,
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: isSelected
+                                          ? AppTheme.primary
+                                          : Colors.grey.shade500,
+                                      decoration: TextDecoration.underline),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 3),
+                              Icon(Icons.open_in_new,
+                                  size: 10,
+                                  color: isSelected
+                                      ? AppTheme.primary
+                                      : Colors.grey.shade400),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
