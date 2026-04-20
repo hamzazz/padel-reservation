@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/court.dart';
@@ -6,6 +6,8 @@ import '../models/tournament.dart';
 import '../services/notification_service.dart';
 import '../services/tournament_service.dart';
 import '../state/auth_provider.dart';
+import '../state/court_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 
 class TournamentsScreen extends StatefulWidget {
@@ -35,7 +37,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final feeCtrl = TextEditingController(text: '10');
-    Court court = availableCourts.first;
+    final allCourts = context.read<CourtProvider>().courts;
+    Court court = allCourts.isNotEmpty ? allCourts.first : const Court(id: '', name: '', description: '', pricePerHour: 0, isIndoor: false, address: '', latitude: 0, longitude: 0);
     int max = 8;
     String format = 'single';
     DateTime date = DateTime.now().add(const Duration(days: 7));
@@ -90,7 +93,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   DropdownButtonFormField<Court>(
                     value: court,
                     decoration: const InputDecoration(labelText: 'Terrain'),
-                    items: availableCourts
+                    items: allCourts
                         .map((c) =>
                             DropdownMenuItem(value: c, child: Text(c.name)))
                         .toList(),
@@ -101,7 +104,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                     controller: feeCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Frais d\'inscription (€)'),
+                        labelText: 'Frais d\'inscription (DH)'),
                   ),
                   const SizedBox(height: 10),
                   ListTile(
@@ -248,8 +251,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Tournois',
-                  style: TextStyle(
+              Text(context.watch<LocaleProvider>().tr('tournaments'),
+                  style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold)),
@@ -492,8 +495,8 @@ class _TournamentCard extends StatelessWidget {
                 _chip(Icons.sports_tennis, tournament.courtName),
                 _chip(Icons.people,
                     '${tournament.participantIds.length}/${tournament.maxParticipants}'),
-                _chip(Icons.euro,
-                    '${tournament.entryFee.toStringAsFixed(0)}€/pers.'),
+                _chip(Icons.monetization_on_outlined,
+                    '${tournament.entryFee.toStringAsFixed(0)}DH/pers.'),
                 _chip(Icons.format_list_numbered,
                     tournament.format == 'single' ? 'Simple' : 'Double'),
               ],

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,6 +10,7 @@ import '../services/match_service.dart';
 import '../services/reservation_service.dart';
 import '../services/user_preferences.dart';
 import '../state/auth_provider.dart';
+import '../state/court_provider.dart';
 import '../theme/app_theme.dart';
 import 'booking_screen.dart';
 
@@ -64,11 +65,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
   }
 
   Court? _courtFor(Reservation r) {
-    try {
-      return availableCourts.firstWhere((c) => c.id == r.courtId);
-    } catch (_) {
-      return null;
-    }
+    return context.read<CourtProvider>().findById(r.courtId);
   }
 
   Future<void> _openMaps(Court court) async {
@@ -234,7 +231,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                                   style: TextStyle(
                                       fontSize: 13, color: Colors.grey)),
                               Text(
-                                '${_pricePerPlayer.toStringAsFixed(2)} €',
+                                '${_pricePerPlayer.toStringAsFixed(2)} DH',
                                 style: const TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
@@ -243,7 +240,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                               ),
                             ],
                           ),
-                          const Icon(Icons.euro_symbol,
+                          const Icon(Icons.monetization_on_outlined,
                               color: AppTheme.primary, size: 38),
                         ],
                       ),
@@ -524,7 +521,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                     ),
                     child: Text(
                       court != null
-                          ? '${court.pricePerHour.toStringAsFixed(0)}€/h'
+                          ? '${court.pricePerHour.toStringAsFixed(0)}DH/h'
                           : '',
                       style: TextStyle(
                           fontSize: 11,

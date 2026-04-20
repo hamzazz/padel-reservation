@@ -63,6 +63,29 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<String?> loginWithFacebook() async {
+    try {
+      final result = await _auth.loginWithFacebook();
+      if (result.error != null && result.error != 'Annulé') return result.error;
+      if (result.user != null) {
+        _user = result.user;
+        await _refreshNotifCount();
+        notifyListeners();
+      }
+      return null;
+    } catch (e) {
+      return 'Erreur Facebook: $e';
+    }
+  }
+
+  Future<void> adminBlockUser(AppUser target) async {
+    await _auth.adminBlockUser(target.id);
+  }
+
+  Future<void> adminUnblockUser(AppUser target) async {
+    await _auth.adminUnblockUser(target.id);
+  }
+
   Future<String?> register({
     required String email,
     required String password,

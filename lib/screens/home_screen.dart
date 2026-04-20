@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/court.dart';
+import '../state/court_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_image_widget.dart';
 import 'booking_screen.dart';
@@ -15,10 +18,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _filter = 'all';
 
-  List<Court> get _filtered {
-    if (_filter == 'indoor') return availableCourts.where((c) => c.isIndoor).toList();
-    if (_filter == 'outdoor') return availableCourts.where((c) => !c.isIndoor).toList();
-    return availableCourts;
+  List<Court> _filtered(List<Court> all) {
+    if (_filter == 'indoor') return all.where((c) => c.isIndoor).toList();
+    if (_filter == 'outdoor') return all.where((c) => !c.isIndoor).toList();
+    return all;
   }
 
   void _showCourtPicker() {
@@ -46,7 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final courts = _filtered;
+    final allCourts = context.watch<CourtProvider>().courts;
+    final courts = _filtered(allCourts);
+    final locale = context.watch<LocaleProvider>();
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,14 +76,15 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.accent,
         icon: const Icon(Icons.calendar_today, color: Colors.black87, size: 18),
-        label: const Text('Réserver',
-            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        label: Text(locale.tr('book'),
+            style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         onPressed: _showCourtPicker,
       ),
     );
   }
 
   Widget _buildFilterBar() {
+    final locale = context.watch<LocaleProvider>();
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -93,11 +99,11 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Row(
               children: [
-                _chip('all', Icons.grid_view_rounded, 'Tous'),
+                _chip('all', Icons.grid_view_rounded, locale.tr('allCourts')),
                 const SizedBox(width: 8),
-                _chip('indoor', Icons.home_outlined, 'Couvert'),
+                _chip('indoor', Icons.home_outlined, locale.tr('indoor')),
                 const SizedBox(width: 8),
-                _chip('outdoor', Icons.wb_sunny_outlined, 'Extérieur'),
+                _chip('outdoor', Icons.wb_sunny_outlined, locale.tr('outdoor')),
               ],
             ),
           ),
@@ -112,13 +118,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white30),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.map_outlined, color: Colors.white, size: 15),
-                  SizedBox(width: 5),
-                  Text('Carte',
-                      style: TextStyle(
+                  const Icon(Icons.map_outlined, color: Colors.white, size: 15),
+                  const SizedBox(width: 5),
+                  Text(locale.tr('map'),
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600)),
@@ -192,7 +198,7 @@ class _CourtPickerSheet extends StatelessWidget {
             ],
           ),
           const Divider(height: 16),
-          ...availableCourts.map((c) => _tile(c)),
+          ...context.read<CourtProvider>().courts.map((c) => _tile(c)),
           const SizedBox(height: 4),
         ],
       ),
@@ -239,7 +245,7 @@ class _CourtPickerSheet extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('${court.pricePerHour.toStringAsFixed(0)}€/h',
+                  Text('${court.pricePerHour.toStringAsFixed(0)}DH/h',
                       style: const TextStyle(
                           color: AppTheme.primary,
                           fontWeight: FontWeight.bold,
@@ -334,7 +340,7 @@ class _CourtCard extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        '${court.pricePerHour.toStringAsFixed(0)}€/h',
+                        '${court.pricePerHour.toStringAsFixed(0)}DH/h',
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

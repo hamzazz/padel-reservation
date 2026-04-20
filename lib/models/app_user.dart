@@ -13,6 +13,7 @@ class AppUser {
   final DateTime createdAt;
   final String? subscriptionType; // null | 'basic' | 'premium'
   final DateTime? subscriptionExpiry;
+  final bool isBlockedByAdmin;
 
   AppUser({
     required this.id,
@@ -29,6 +30,7 @@ class AppUser {
     required this.createdAt,
     this.subscriptionType,
     this.subscriptionExpiry,
+    this.isBlockedByAdmin = false,
   });
 
   String get fullName => '$firstName $lastName';
@@ -47,6 +49,7 @@ class AppUser {
     List<String>? blockedIds,
     String? subscriptionType,
     DateTime? subscriptionExpiry,
+    bool? isBlockedByAdmin,
   }) =>
       AppUser(
         id: id,
@@ -63,6 +66,7 @@ class AppUser {
         createdAt: createdAt,
         subscriptionType: subscriptionType ?? this.subscriptionType,
         subscriptionExpiry: subscriptionExpiry ?? this.subscriptionExpiry,
+        isBlockedByAdmin: isBlockedByAdmin ?? this.isBlockedByAdmin,
       );
 
   Map<String, dynamic> toMap() => {
@@ -80,6 +84,7 @@ class AppUser {
         'createdAt': createdAt.toIso8601String(),
         'subscriptionType': subscriptionType,
         'subscriptionExpiry': subscriptionExpiry?.toIso8601String(),
+        'isBlockedByAdmin': isBlockedByAdmin,
       };
 
   factory AppUser.fromMap(Map<String, dynamic> m) => AppUser(
@@ -99,6 +104,7 @@ class AppUser {
         subscriptionExpiry: m['subscriptionExpiry'] != null
             ? DateTime.parse(m['subscriptionExpiry'])
             : null,
+        isBlockedByAdmin: m['isBlockedByAdmin'] ?? false,
       );
 }
 

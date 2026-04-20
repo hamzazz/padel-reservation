@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/review_service.dart';
 import '../state/auth_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import 'wallet_screen.dart';
 import 'players_screen.dart';
@@ -385,7 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: const Text('Wallet',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(
-                    'Solde : ${u.walletBalance.toStringAsFixed(2)} €'),
+                    'Solde : ${u.walletBalance.toStringAsFixed(2)} DH'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const WalletScreen())),
@@ -430,6 +431,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(
                       builder: (_) => const PlayersScreen())),
             ),
+          ],
+          // Language picker (own profile)
+          if (isOwnProfile) ...[
+            const SizedBox(height: 12),
+            _LanguageSelector(),
           ],
           // Logout (own profile)
           if (isOwnProfile) ...[
@@ -484,6 +490,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
       subtitle: Text(value,
           style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class _LanguageSelector extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.language, size: 18, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              Text(locale.tr('language'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _langBtn(context, 'fr', '🇫🇷', locale.tr('french'), locale),
+              const SizedBox(width: 8),
+              _langBtn(context, 'en', '🇬🇧', locale.tr('english'), locale),
+              const SizedBox(width: 8),
+              _langBtn(context, 'ar', '🇸🇦', locale.tr('arabic'), locale),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _langBtn(BuildContext context, String code, String flag, String label,
+      LocaleProvider locale) {
+    final isSelected = locale.locale == code;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => locale.setLocale(code),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primary : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? AppTheme.primary : Colors.grey.shade300,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 20)),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

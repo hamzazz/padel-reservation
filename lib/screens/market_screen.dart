@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../services/market_service.dart';
 import '../state/auth_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 
 class MarketScreen extends StatefulWidget {
@@ -97,7 +98,7 @@ class _MarketScreenState extends State<MarketScreen>
                   TextFormField(
                     controller: priceCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Prix (€)'),
+                    decoration: const InputDecoration(labelText: 'Prix (DH)'),
                     validator: (v) =>
                         (v == null || double.tryParse(v) == null)
                             ? 'Prix invalide'
@@ -193,6 +194,7 @@ class _MarketScreenState extends State<MarketScreen>
   }
 
   Widget _buildHeader() {
+    final locale = context.watch<LocaleProvider>();
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -216,8 +218,8 @@ class _MarketScreenState extends State<MarketScreen>
                   child: const Text('🛒', style: TextStyle(fontSize: 18)),
                 ),
                 const SizedBox(width: 10),
-                const Text('Marché',
-                    style: TextStyle(
+                Text(locale.tr('market'),
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold)),
@@ -243,9 +245,9 @@ class _MarketScreenState extends State<MarketScreen>
             indicatorColor: AppTheme.accent,
             indicatorWeight: 3,
             dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(text: 'Annonces'),
-              Tab(text: 'Mes ventes'),
+            tabs: [
+              Tab(text: locale.locale == 'ar' ? 'الإعلانات' : locale.locale == 'en' ? 'Listings' : 'Annonces'),
+              Tab(text: locale.locale == 'ar' ? 'مبيعاتي' : locale.locale == 'en' ? 'My Sales' : 'Mes ventes'),
             ],
           ),
         ],
@@ -359,7 +361,7 @@ class _ProductCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('${product.price.toStringAsFixed(2)} €',
+                Text('${product.price.toStringAsFixed(2)} DH',
                     style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/auth_provider.dart';
+import '../../state/locale_provider.dart';
 import '../../theme/app_theme.dart';
 import 'register_screen.dart';
 
@@ -37,15 +38,38 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _socialLogin(String provider) async {
+    setState(() => _loading = true);
+    String? err;
+    if (provider == 'Google') {
+      err = await context.read<AuthProvider>().loginWithGoogle();
+    } else if (provider == 'Facebook') {
+      err = await context.read<AuthProvider>().loginWithFacebook();
+    }
+    if (mounted) setState(() => _loading = false);
+    if (err != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err), backgroundColor: Colors.red));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              const SizedBox(height: 40),
+              // Language picker at top
+              Align(
+                alignment: locale.isRtl
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                child: _LanguagePicker(),
+              ),
+              const SizedBox(height: 24),
               // Logo
               Container(
                 width: 90,
@@ -69,11 +93,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text('🎾', style: TextStyle(fontSize: 42))),
               ),
               const SizedBox(height: 20),
-              const Text('Padel Club',
-                  style: TextStyle(
+              Text(locale.tr('appName'),
+                  style: const TextStyle(
                       fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
-              Text('Connectez-vous pour continuer',
+              Text(locale.tr('connectContinue'),
                   style: TextStyle(
                       color: Colors.grey.shade600, fontSize: 14)),
               const SizedBox(height: 36),
@@ -84,9 +108,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.email_outlined),
-                        labelText: 'Email',
+                      textDirection:
+                          locale.isRtl ? TextDirection.rtl : TextDirection.ltr,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        labelText: locale.tr('email'),
                         hintText: 'votre@email.com',
                       ),
                       validator: (v) => (v == null || !v.contains('@'))
@@ -97,9 +123,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passCtrl,
                       obscureText: _obscure,
+                      textDirection:
+                          locale.isRtl ? TextDirection.rtl : TextDirection.ltr,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.lock_outline),
-                        labelText: 'Mot de passe',
+                        labelText: locale.tr('password'),
                         suffixIcon: IconButton(
                           icon: Icon(_obscure
                               ? Icons.visibility_off
@@ -125,42 +153,40 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                     color: Colors.white, strokeWidth: 2))
-                            : const Text('Se connecter'),
+                            : Text(locale.tr('login')),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              // Social divider
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.grey.shade300)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('ou',
+                    child: Text(locale.tr('or'),
                         style: TextStyle(color: Colors.grey.shade500)),
                   ),
                   Expanded(child: Divider(color: Colors.grey.shade300)),
                 ],
               ),
               const SizedBox(height: 16),
-              // Social buttons
               Row(
                 children: [
                   Expanded(
                     child: _socialBtn(
-                      label: 'Google',
+                      label: locale.tr('loginWithGoogle'),
                       emoji: '🔴',
-                      onTap: () => _socialLogin('Google'),
+                      onTap: _loading ? null : () => _socialLogin('Google'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _socialBtn(
-                      label: 'Facebook',
+                      label: locale.tr('loginWithFacebook'),
                       emoji: '🔵',
-                      onTap: () => _socialLogin('Facebook'),
+                      onTap: _loading ? null : () => _socialLogin('Facebook'),
                     ),
                   ),
                 ],
@@ -169,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Pas encore de compte ? ',
+                  Text('${locale.tr('noAccount')} ',
                       style: TextStyle(color: Colors.grey.shade600)),
                   GestureDetector(
                     onTap: () => Navigator.push(
@@ -177,15 +203,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       MaterialPageRoute(
                           builder: (_) => const RegisterScreen()),
                     ),
-                    child: const Text('S\'inscrire',
-                        style: TextStyle(
+                    child: Text(locale.tr('register'),
+                        style: const TextStyle(
                             color: AppTheme.primary,
                             fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              // Demo hint
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -194,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Column(
                   children: [
-                    Text('Comptes de démonstration',
+                    Text(locale.tr('demoAccounts'),
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -215,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _socialBtn(
       {required String label,
       required String emoji,
-      required VoidCallback onTap}) {
+      required VoidCallback? onTap}) {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
@@ -246,26 +271,47 @@ class _LoginScreenState extends State<LoginScreen> {
           _passCtrl.text = pass;
         },
         child: Text('$role: $email / $pass',
-            style:
-                TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+      ),
+    );
+  }
+}
+
+class _LanguagePicker extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _langBtn(context, 'fr', '🇫🇷', locale),
+          _langBtn(context, 'en', '🇬🇧', locale),
+          _langBtn(context, 'ar', '🇸🇦', locale),
+        ],
       ),
     );
   }
 
-  Future<void> _socialLogin(String provider) async {
-    if (provider == 'Google') {
-      setState(() => _loading = true);
-      final err = await context.read<AuthProvider>().loginWithGoogle();
-      if (mounted) setState(() => _loading = false);
-      if (err != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(err), backgroundColor: Colors.red));
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('$provider login — bientôt disponible'),
-        backgroundColor: Colors.orange,
-      ));
-    }
+  Widget _langBtn(
+      BuildContext context, String code, String flag, LocaleProvider locale) {
+    final isSelected = locale.locale == code;
+    return GestureDetector(
+      onTap: () => locale.setLocale(code),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(flag, style: const TextStyle(fontSize: 18)),
+      ),
+    );
   }
 }

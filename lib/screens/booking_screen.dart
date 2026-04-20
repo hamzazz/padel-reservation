@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,6 +7,7 @@ import '../models/court.dart';
 import '../models/reservation.dart';
 import '../services/reservation_service.dart';
 import '../state/auth_provider.dart';
+import '../state/court_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_image_widget.dart';
 
@@ -34,7 +35,12 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedCourt = widget.preselectedCourt ?? availableCourts.first;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final courts = context.read<CourtProvider>().courts;
+      if (_selectedCourt == null && courts.isNotEmpty) {
+        setState(() => _selectedCourt = courts.first);
+      }
+    });
   }
 
   @override
@@ -144,7 +150,7 @@ class _BookingScreenState extends State<BookingScreen> {
             _infoRow(Icons.calendar_today, DateFormat('EEEE dd MMMM yyyy', 'fr').format(r.date)),
             _infoRow(Icons.access_time, r.timeSlot),
             _infoRow(Icons.people, '${r.numberOfPlayers} joueurs'),
-            _infoRow(Icons.euro, '${r.totalPrice.toStringAsFixed(2)} €'),
+            _infoRow(Icons.monetization_on_outlined, '${r.totalPrice.toStringAsFixed(2)} DH'),
           ],
         ),
         actions: [
@@ -291,10 +297,10 @@ class _BookingScreenState extends State<BookingScreen> {
     return DropdownButtonFormField<Court>(
       value: _selectedCourt,
       decoration: const InputDecoration(prefixIcon: Icon(Icons.sports_tennis)),
-      items: availableCourts
+      items: context.read<CourtProvider>().courts
           .map((c) => DropdownMenuItem(
                 value: c,
-                child: Text('${c.name} — ${c.pricePerHour.toStringAsFixed(0)}€/h'),
+                child: Text('${c.name} — ${c.pricePerHour.toStringAsFixed(0)}DH/h'),
               ))
           .toList(),
       onChanged: (v) => setState(() {
@@ -425,13 +431,13 @@ class _BookingScreenState extends State<BookingScreen> {
             children: [
               const Text('Total (1h30)', style: TextStyle(fontSize: 13, color: Colors.grey)),
               Text(
-                '${total.toStringAsFixed(2)} €',
+                '${total.toStringAsFixed(2)} DH',
                 style: const TextStyle(
                     fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primary),
               ),
             ],
           ),
-          Icon(Icons.euro_symbol, color: AppTheme.primary.withOpacity(0.4), size: 40),
+          Icon(Icons.monetization_on_outlined, color: AppTheme.primary.withOpacity(0.4), size: 40),
         ],
       ),
     );

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
@@ -65,7 +65,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              '${widget.amount.toStringAsFixed(2)} € débités',
+              '${widget.amount.toStringAsFixed(2)} DH débités',
               style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 4),
@@ -123,7 +123,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           TextStyle(color: Colors.white70, fontSize: 13)),
                   const SizedBox(height: 4),
                   Text(
-                    '${widget.amount.toStringAsFixed(2)} €',
+                    '${widget.amount.toStringAsFixed(2)} DH',
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -224,7 +224,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     : const Icon(Icons.payment),
                 label: Text(_processing
                     ? 'Traitement...'
-                    : 'Payer ${widget.amount.toStringAsFixed(2)} €'),
+                    : 'Payer ${widget.amount.toStringAsFixed(2)} DH'),
                 onPressed: _processing ? null : _pay,
                 style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 54)),

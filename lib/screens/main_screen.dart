@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/auth_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'matches_screen.dart';
@@ -31,51 +32,49 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final locale = context.watch<LocaleProvider>();
     final unread = auth.unreadNotifs;
 
     return Scaffold(
-      appBar: _buildAppBar(auth, unread),
+      appBar: _buildAppBar(auth, unread, locale),
       body: IndexedStack(index: _index, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         backgroundColor: Colors.white,
         indicatorColor: AppTheme.primary.withOpacity(0.12),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: AppTheme.primary),
-            label: 'Accueil',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home, color: AppTheme.primary),
+            label: locale.tr('home'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.sports_tennis_outlined),
-            selectedIcon:
-                Icon(Icons.sports_tennis, color: AppTheme.primary),
-            label: 'Matchs',
+            icon: const Icon(Icons.sports_tennis_outlined),
+            selectedIcon: const Icon(Icons.sports_tennis, color: AppTheme.primary),
+            label: locale.tr('matches'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            selectedIcon:
-                Icon(Icons.storefront, color: AppTheme.primary),
-            label: 'Marché',
+            icon: const Icon(Icons.storefront_outlined),
+            selectedIcon: const Icon(Icons.storefront, color: AppTheme.primary),
+            label: locale.tr('market'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon:
-                Icon(Icons.emoji_events, color: AppTheme.primary),
-            label: 'Tournois',
+            icon: const Icon(Icons.emoji_events_outlined),
+            selectedIcon: const Icon(Icons.emoji_events, color: AppTheme.primary),
+            label: locale.tr('tournaments'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person, color: AppTheme.primary),
-            label: 'Profil',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person, color: AppTheme.primary),
+            label: locale.tr('profile'),
           ),
         ],
       ),
     );
   }
 
-  PreferredSizeWidget? _buildAppBar(AuthProvider auth, int unread) {
+  PreferredSizeWidget? _buildAppBar(AuthProvider auth, int unread, LocaleProvider locale) {
     if (_index != 0) return null;
     return PreferredSize(
       preferredSize: const Size.fromHeight(62),
@@ -105,14 +104,14 @@ class _MainScreenState extends State<MainScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Padel Club',
-                    style: TextStyle(
+                Text(locale.tr('appName'),
+                    style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                         letterSpacing: 0.3)),
                 if (auth.currentUser != null)
-                  Text('Bonjour, ${auth.currentUser!.firstName} 👋',
+                  Text('${locale.locale == 'ar' ? 'مرحباً' : locale.locale == 'en' ? 'Hello' : 'Bonjour'}, ${auth.currentUser!.firstName} 👋',
                       style: const TextStyle(
                           fontSize: 11, color: Colors.white70)),
               ],

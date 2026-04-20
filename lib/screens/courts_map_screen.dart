@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 import '../models/court.dart';
+import '../state/court_provider.dart';
 import '../theme/app_theme.dart';
 import 'booking_screen.dart';
 
@@ -34,7 +36,7 @@ class _CourtsMapScreenState extends State<CourtsMapScreen> {
                 userAgentPackageName: 'com.padel.padel_reservation',
               ),
               MarkerLayer(
-                markers: availableCourts.map((c) {
+                markers: context.watch<CourtProvider>().courts.map((c) {
                   final isSelected = _selected?.id == c.id;
                   return Marker(
                     point: LatLng(c.latitude, c.longitude),
@@ -153,7 +155,7 @@ class _CourtsMapScreenState extends State<CourtsMapScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text('${_selected!.pricePerHour.toStringAsFixed(0)}€/h',
+                              Text('${_selected!.pricePerHour.toStringAsFixed(0)}DH/h',
                                   style: const TextStyle(
                                       color: AppTheme.primary,
                                       fontWeight: FontWeight.bold,

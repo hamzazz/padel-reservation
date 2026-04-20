@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/wallet_service.dart';
@@ -69,7 +69,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     spacing: 10,
                     children: amounts.map((a) {
                       return ChoiceChip(
-                        label: Text('${a.toStringAsFixed(0)} €'),
+                        label: Text('${a.toStringAsFixed(0)} DH'),
                         selected: chosen == a,
                         onSelected: (_) => setS(() => chosen = a),
                         selectedColor:
@@ -142,7 +142,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.add_card),
                     label: Text(
-                        'Recharger ${chosen.toStringAsFixed(0)} €'),
+                        'Recharger ${chosen.toStringAsFixed(0)} DH'),
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
                       await Future.delayed(const Duration(seconds: 1));
@@ -155,7 +155,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                              '${chosen.toStringAsFixed(0)} € ajoutés !'),
+                              '${chosen.toStringAsFixed(0)} DH ajoutés !'),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -210,7 +210,7 @@ class _WalletScreenState extends State<WalletScreen> {
                               color: Colors.white70, fontSize: 14)),
                       const SizedBox(height: 6),
                       Text(
-                        '${user?.walletBalance.toStringAsFixed(2) ?? '0.00'} €',
+                        '${user?.walletBalance.toStringAsFixed(2) ?? '0.00'} DH',
                         style: const TextStyle(
                             color: Colors.white,
                             fontSize: 38,
@@ -281,7 +281,7 @@ class _TxTile extends StatelessWidget {
           style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
         ),
         trailing: Text(
-          '${isCredit ? '+' : '-'}${tx.amount.toStringAsFixed(2)} €',
+          '${isCredit ? '+' : '-'}${tx.amount.toStringAsFixed(2)} DH',
           style: TextStyle(
             color: isCredit ? Colors.green : Colors.red,
             fontWeight: FontWeight.bold,

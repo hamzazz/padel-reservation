@@ -18,6 +18,48 @@ class Court {
     required this.latitude,
     required this.longitude,
   });
+
+  Court copyWith({
+    String? name,
+    String? description,
+    double? pricePerHour,
+    bool? isIndoor,
+    String? address,
+    double? latitude,
+    double? longitude,
+  }) =>
+      Court(
+        id: id,
+        name: name ?? this.name,
+        description: description ?? this.description,
+        pricePerHour: pricePerHour ?? this.pricePerHour,
+        isIndoor: isIndoor ?? this.isIndoor,
+        address: address ?? this.address,
+        latitude: latitude ?? this.latitude,
+        longitude: longitude ?? this.longitude,
+      );
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'pricePerHour': pricePerHour,
+        'isIndoor': isIndoor,
+        'address': address,
+        'latitude': latitude,
+        'longitude': longitude,
+      };
+
+  factory Court.fromMap(Map<String, dynamic> m) => Court(
+        id: m['id'] as String,
+        name: m['name'] as String,
+        description: m['description'] as String? ?? '',
+        pricePerHour: (m['pricePerHour'] as num).toDouble(),
+        isIndoor: m['isIndoor'] as bool? ?? false,
+        address: m['address'] as String? ?? '',
+        latitude: (m['latitude'] as num).toDouble(),
+        longitude: (m['longitude'] as num).toDouble(),
+      );
 }
 
 final List<Court> availableCourts = [

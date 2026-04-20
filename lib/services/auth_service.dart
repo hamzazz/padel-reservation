@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/app_user.dart';
 
@@ -82,6 +83,10 @@ class AuthService {
         return (user: null, error: 'Connecté mais profil inaccessible. Vérifiez les règles Firestore. Erreur: $firestoreErr');
       }
       if (user == null) return (user: null, error: 'Profil introuvable dans Firestore');
+      if (user.isBlockedByAdmin) {
+        await _auth.signOut();
+        return (user: null, error: 'Votre compte a été suspendu par un administrateur');
+      }
       return (user: user, error: null);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
@@ -130,15 +135,64 @@ class AuthService {
         );
         await _users.doc(uid).set(user.toMap());
       }
+      if (user.isBlockedByAdmin) {
+        await _auth.signOut();
+        return (user: null, error: 'Votre compte a été suspendu par un administrateur');
+      }
       return (user: user, error: null);
     } catch (e) {
       return (user: null, error: 'Erreur Google Sign-In: $e');
     }
   }
 
+  // ── Facebook Sign-In ──────────────────────────────────────────────────
+  Future<({AppUser? user, String? error})> loginWithFacebook() async {
+    try {
+      final result = await FacebookAuth.instance.login();
+      if (result.status == LoginStatus.cancelled) {
+        return (user: null, error: 'Annulé');
+      }
+      if (result.status != LoginStatus.success) {
+        return (user: null, error: 'Erreur Facebook: ${result.message}');
+      }
+      final credential = FacebookAuthProvider.credential(result.accessToken!.tokenString);
+      final cred = await _auth.signInWithCredential(credential);
+      final uid = cred.user!.uid;
+      AppUser? user = await _getUserDoc(uid);
+      if (user == null) {
+        final data = await FacebookAuth.instance.getUserData();
+        final name = (data['name'] as String?) ?? 'Joueur Padel';
+        final names = name.split(' ');
+        user = AppUser(
+          id: uid,
+          email: cred.user!.email ?? '',
+          firstName: names.first,
+          lastName: names.length > 1 ? names.sublist(1).join(' ') : '',
+          phone: '',
+          level: 1,
+          walletBalance: 0,
+          avatarEmoji: '🎾',
+          isAdmin: false,
+          friendIds: [],
+          blockedIds: [],
+          createdAt: DateTime.now(),
+        );
+        await _users.doc(uid).set(user.toMap());
+      }
+      if (user.isBlockedByAdmin) {
+        await _auth.signOut();
+        return (user: null, error: 'Votre compte a été suspendu par un administrateur');
+      }
+      return (user: user, error: null);
+    } catch (e) {
+      return (user: null, error: 'Erreur Facebook Sign-In: $e');
+    }
+  }
+
   // ── Logout ────────────────────────────────────────────────────────────
   Future<void> logout() async {
     await _googleSignIn.signOut();
+    await FacebookAuth.instance.logOut();
     await _auth.signOut();
   }
 
@@ -168,6 +222,15 @@ class AuthService {
     } catch (_) {
       return [];
     }
+  }
+
+  // ── Admin block / unblock ─────────────────────────────────────────────
+  Future<void> adminBlockUser(String userId) async {
+    await _users.doc(userId).update({'isBlockedByAdmin': true});
+  }
+
+  Future<void> adminUnblockUser(String userId) async {
+    await _users.doc(userId).update({'isBlockedByAdmin': false});
   }
 
   // ── Firebase Auth state stream ────────────────────────────────────────

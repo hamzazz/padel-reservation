@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/reservation.dart';
@@ -249,7 +249,7 @@ class _ReservationCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    '${reservation.totalPrice.toStringAsFixed(2)} €',
+                    '${reservation.totalPrice.toStringAsFixed(2)} DH',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../models/match.dart';
@@ -224,8 +224,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
             ),
             _row(Icons.access_time, 'Créneau', match.timeSlot),
             _row(Icons.people, 'Max joueurs', '${match.maxPlayers}'),
-            _row(Icons.euro, 'Prix / joueur',
-                '${match.pricePerPlayer.toStringAsFixed(2)} €'),
+            _row(Icons.monetization_on_outlined, 'Prix / joueur',
+                '${match.pricePerPlayer.toStringAsFixed(2)} DH'),
           ],
         ),
       ),
@@ -376,7 +376,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
             child: ElevatedButton.icon(
               icon: const Icon(Icons.payment),
               label: Text(
-                  'Payer ma part — ${match.pricePerPlayer.toStringAsFixed(2)} €'),
+                  'Payer ma part — ${match.pricePerPlayer.toStringAsFixed(2)} DH'),
               onPressed: () => _pay(myPlayer),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.accent,

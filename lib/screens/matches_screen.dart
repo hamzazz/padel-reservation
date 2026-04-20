@@ -1,12 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/court.dart';
 import '../models/match.dart';
+import '../state/court_provider.dart';
 import '../services/match_service.dart';
 import '../services/user_preferences.dart';
 import '../state/auth_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import 'create_match_screen.dart';
 import 'match_detail_screen.dart';
@@ -94,8 +96,8 @@ class _MatchesScreenState extends State<MatchesScreen>
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.accent,
         icon: const Icon(Icons.add, color: Colors.black87),
-        label: const Text('Créer un match',
-            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        label: Text(context.watch<LocaleProvider>().tr('createMatch'),
+            style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         onPressed: () async {
           await Navigator.push(
             context,
@@ -132,8 +134,8 @@ class _MatchesScreenState extends State<MatchesScreen>
                   child: const Text('🎾', style: TextStyle(fontSize: 18)),
                 ),
                 const SizedBox(width: 10),
-                const Text('Matchs',
-                    style: TextStyle(
+                Text(context.watch<LocaleProvider>().tr('matches'),
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold)),
@@ -156,18 +158,21 @@ class _MatchesScreenState extends State<MatchesScreen>
               ],
             ),
           ),
-          TabBar(
-            controller: _tabController,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white60,
-            indicatorColor: AppTheme.accent,
-            indicatorWeight: 3,
-            dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(text: 'Tous les matchs'),
-              Tab(text: 'Mes matchs'),
-            ],
-          ),
+          Builder(builder: (ctx) {
+            final locale = ctx.watch<LocaleProvider>();
+            return TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white60,
+              indicatorColor: AppTheme.accent,
+              indicatorWeight: 3,
+              dividerColor: Colors.transparent,
+              tabs: [
+                Tab(text: locale.tr('allMatches')),
+                Tab(text: locale.tr('myMatches')),
+              ],
+            );
+          }),
         ],
       ),
     );
@@ -224,11 +229,8 @@ class _MatchCard extends StatelessWidget {
     required this.onTap,
   });
 
-  Future<void> _openMaps() async {
-    Court? court;
-    try {
-      court = availableCourts.firstWhere((c) => c.id == match.courtId);
-    } catch (_) {}
+  Future<void> _openMaps(BuildContext context) async {
+    final court = context.read<CourtProvider>().findById(match.courtId);
     final query = court != null
         ? '${court.latitude},${court.longitude}'
         : Uri.encodeComponent(match.courtName);
@@ -345,8 +347,8 @@ class _MatchCard extends StatelessWidget {
                       _info(Icons.people,
                           '${match.players.length}/${match.maxPlayers} joueurs'),
                       const SizedBox(width: 12),
-                      _info(Icons.euro,
-                          '${match.pricePerPlayer.toStringAsFixed(0)}€/joueur'),
+                      _info(Icons.monetization_on_outlined,
+                          '${match.pricePerPlayer.toStringAsFixed(0)}DH/joueur'),
                     ],
                   ),
                   const Icon(Icons.arrow_forward_ios,
@@ -355,7 +357,7 @@ class _MatchCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               GestureDetector(
-                onTap: _openMaps,
+                onTap: () => _openMaps(context),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
