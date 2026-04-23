@@ -16,6 +16,8 @@ class AuthProvider extends ChangeNotifier {
   AppUser? get currentUser => _user;
   bool get isLoggedIn => _user != null;
   bool get isAdmin => _user?.isAdmin ?? false;
+  bool get isClubAdmin => _user?.isClubAdmin ?? false;
+  String get clubId => _user?.clubId ?? '';
   int get unreadNotifs => _unreadNotifs;
   bool get loading => _loading;
 

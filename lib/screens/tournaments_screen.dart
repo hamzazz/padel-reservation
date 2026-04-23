@@ -235,7 +235,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 12, 16, 14),
       child: Row(
         children: [
           Container(
@@ -294,109 +294,61 @@ class _TournamentCard extends StatelessWidget {
   const _TournamentCard({required this.tournament, required this.onRefresh});
 
   void _showParticipants(BuildContext context) {
+    final user = context.read<AuthProvider>().currentUser;
+    final isOrganizer = user?.id == tournament.organizerId;
+    final isAdmin = context.read<AuthProvider>().isAdmin;
+    final canManage = isOrganizer || isAdmin;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Joueurs inscrits — ${tournament.name}',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '${tournament.participantNames.length}/${tournament.maxParticipants}',
-                  style: const TextStyle(
-                      color: AppTheme.primary, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: tournament.maxParticipants > 0
-                  ? tournament.participantNames.length /
-                      tournament.maxParticipants
-                  : 0,
-              backgroundColor: Colors.grey.shade200,
-              color: AppTheme.primary,
-              borderRadius: BorderRadius.circular(4),
-              minHeight: 6,
-            ),
-            const SizedBox(height: 14),
-            ...tournament.participantNames.asMap().entries.map((e) {
-              final idx = e.key;
-              final name = e.value;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: AppTheme.primary.withOpacity(0.12),
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                        color: AppTheme.primary, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                title: Text(name,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                trailing: idx == 0
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('Organisateur',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold)),
-                      )
-                    : Text('#${idx + 1}',
-                        style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontWeight: FontWeight.bold)),
-              );
-            }),
-            ...List.generate(
-              tournament.maxParticipants - tournament.participantNames.length,
-              (i) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: Colors.grey.shade100,
-                  child: Icon(Icons.person_add,
-                      color: Colors.grey.shade400, size: 18),
-                ),
-                title: Text(
-                  'Place disponible #${tournament.participantNames.length + i + 1}',
-                  style: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontStyle: FontStyle.italic,
-                      fontSize: 13),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+      builder: (_) => _ParticipantsSheet(
+        tournament: tournament,
+        canManage: canManage,
+        onRefresh: onRefresh,
       ),
     );
+  }
+
+  Future<void> _withdraw(BuildContext context) async {
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Se retirer du tournoi'),
+        content: Text(
+            'Voulez-vous vous retirer de "${tournament.name}" ?\n${tournament.entryFee > 0 ? 'Les frais seront remboursés sur votre wallet.' : ''}'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Se retirer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final svc = TournamentService();
+    final ok = await svc.removeParticipant(tournament.id, user.id);
+    if (ok && tournament.entryFee > 0) {
+      await auth.refundWallet(
+          tournament.entryFee, 'Remboursement tournoi: ${tournament.name}');
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? 'Vous avez quitté le tournoi' : 'Erreur'),
+        backgroundColor: ok ? Colors.orange : Colors.red,
+      ));
+      onRefresh();
+    }
   }
 
   Future<void> _join(BuildContext context) async {
@@ -595,6 +547,45 @@ class _TournamentCard extends StatelessWidget {
                   minimumSize: const Size(double.infinity, 42),
                 ),
               ),
+            ] else if (isIn && tournament.status == 'open') ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 16),
+                        SizedBox(width: 6),
+                        Text('Inscrit',
+                            style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.exit_to_app, size: 16),
+                    label: const Text('Se retirer'),
+                    onPressed: () => _withdraw(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
             ] else if (isIn)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -634,6 +625,209 @@ class _TournamentCard extends StatelessWidget {
             style:
                 TextStyle(fontSize: 12, color: Colors.grey.shade700)),
       ],
+    );
+  }
+}
+
+class _ParticipantsSheet extends StatefulWidget {
+  final Tournament tournament;
+  final bool canManage;
+  final VoidCallback onRefresh;
+
+  const _ParticipantsSheet({
+    required this.tournament,
+    required this.canManage,
+    required this.onRefresh,
+  });
+
+  @override
+  State<_ParticipantsSheet> createState() => _ParticipantsSheetState();
+}
+
+class _ParticipantsSheetState extends State<_ParticipantsSheet> {
+  late List<String> _ids;
+  late List<String> _names;
+  bool _removing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ids = List<String>.from(widget.tournament.participantIds);
+    _names = List<String>.from(widget.tournament.participantNames);
+  }
+
+  Future<void> _remove(int idx) async {
+    final userId = _ids[idx];
+    final name = _names[idx];
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Retirer le participant'),
+        content: Text('Retirer "$name" du tournoi ?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Retirer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _removing = true);
+    final ok = await TournamentService()
+        .removeParticipant(widget.tournament.id, userId);
+    if (ok && mounted) {
+      setState(() {
+        _ids.removeAt(idx);
+        _names.removeAt(idx);
+        _removing = false;
+      });
+      widget.onRefresh();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('$name retiré du tournoi'),
+        backgroundColor: Colors.orange,
+      ));
+    } else {
+      setState(() => _removing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (_, scroll) => Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Joueurs inscrits — ${widget.tournament.name}',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  '${_names.length}/${widget.tournament.maxParticipants}',
+                  style: const TextStyle(
+                      color: AppTheme.primary, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: LinearProgressIndicator(
+              value: widget.tournament.maxParticipants > 0
+                  ? _names.length / widget.tournament.maxParticipants
+                  : 0,
+              backgroundColor: Colors.grey.shade200,
+              color: AppTheme.primary,
+              borderRadius: BorderRadius.circular(4),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_removing)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: LinearProgressIndicator(),
+            ),
+          Expanded(
+            child: ListView(
+              controller: scroll,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                ..._names.asMap().entries.map((e) {
+                  final idx = e.key;
+                  final name = e.value;
+                  final isOrganizer = idx == 0;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.primary.withOpacity(0.12),
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    title: Text(name,
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: isOrganizer
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('Organisateur',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.amber,
+                                    fontWeight: FontWeight.bold)),
+                          )
+                        : widget.canManage
+                            ? IconButton(
+                                icon: const Icon(Icons.person_remove,
+                                    color: Colors.red, size: 20),
+                                tooltip: 'Retirer',
+                                onPressed:
+                                    _removing ? null : () => _remove(idx),
+                              )
+                            : Text('#${idx + 1}',
+                                style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.bold)),
+                  );
+                }),
+                ...List.generate(
+                  widget.tournament.maxParticipants - _names.length,
+                  (i) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.grey.shade100,
+                      child: Icon(Icons.person_add,
+                          color: Colors.grey.shade400, size: 18),
+                    ),
+                    title: Text(
+                      'Place disponible #${_names.length + i + 1}',
+                      style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontStyle: FontStyle.italic,
+                          fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

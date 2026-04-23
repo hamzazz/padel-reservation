@@ -14,6 +14,8 @@ class AppUser {
   final String? subscriptionType; // null | 'basic' | 'premium'
   final DateTime? subscriptionExpiry;
   final bool isBlockedByAdmin;
+  final bool isClubAdmin;
+  final String clubId;
 
   AppUser({
     required this.id,
@@ -31,6 +33,8 @@ class AppUser {
     this.subscriptionType,
     this.subscriptionExpiry,
     this.isBlockedByAdmin = false,
+    this.isClubAdmin = false,
+    this.clubId = '',
   });
 
   String get fullName => '$firstName $lastName';
@@ -50,6 +54,8 @@ class AppUser {
     String? subscriptionType,
     DateTime? subscriptionExpiry,
     bool? isBlockedByAdmin,
+    bool? isClubAdmin,
+    String? clubId,
   }) =>
       AppUser(
         id: id,
@@ -67,6 +73,8 @@ class AppUser {
         subscriptionType: subscriptionType ?? this.subscriptionType,
         subscriptionExpiry: subscriptionExpiry ?? this.subscriptionExpiry,
         isBlockedByAdmin: isBlockedByAdmin ?? this.isBlockedByAdmin,
+        isClubAdmin: isClubAdmin ?? this.isClubAdmin,
+        clubId: clubId ?? this.clubId,
       );
 
   Map<String, dynamic> toMap() => {
@@ -85,6 +93,8 @@ class AppUser {
         'subscriptionType': subscriptionType,
         'subscriptionExpiry': subscriptionExpiry?.toIso8601String(),
         'isBlockedByAdmin': isBlockedByAdmin,
+        'isClubAdmin': isClubAdmin,
+        'clubId': clubId,
       };
 
   factory AppUser.fromMap(Map<String, dynamic> m) => AppUser(
@@ -105,6 +115,8 @@ class AppUser {
             ? DateTime.parse(m['subscriptionExpiry'])
             : null,
         isBlockedByAdmin: m['isBlockedByAdmin'] ?? false,
+        isClubAdmin: m['isClubAdmin'] ?? false,
+        clubId: m['clubId'] ?? '',
       );
 }
 

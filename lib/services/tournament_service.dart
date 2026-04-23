@@ -72,6 +72,22 @@ class TournamentService {
     return true;
   }
 
+  Future<bool> removeParticipant(String tournamentId, String userId) async {
+    final doc = await _col.doc(tournamentId).get();
+    if (!doc.exists) return false;
+    final t = Tournament.fromMap(_ts(doc.data()!));
+    final idx = t.participantIds.indexOf(userId);
+    if (idx == -1) return false;
+    final newIds = List<String>.from(t.participantIds)..removeAt(idx);
+    final newNames = List<String>.from(t.participantNames)..removeAt(idx);
+    await _col.doc(tournamentId).update({
+      'participantIds': newIds,
+      'participantNames': newNames,
+      'status': t.status == 'full' ? 'open' : t.status,
+    });
+    return true;
+  }
+
   Future<void> updateStatus(String id, String status) async {
     await _col.doc(id).update({'status': status});
   }

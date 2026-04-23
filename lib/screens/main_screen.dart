@@ -10,6 +10,7 @@ import 'tournaments_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'admin_screen.dart';
+import 'club_admin_screen.dart';
 import 'reservations_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -24,9 +25,9 @@ class _MainScreenState extends State<MainScreen> {
   final _screens = const [
     HomeScreen(),
     MatchesScreen(),
-    MarketScreen(),
+    ReservationsScreen(),
     TournamentsScreen(),
-    ProfileScreen(),
+    MarketScreen(),
   ];
 
   @override
@@ -36,46 +37,73 @@ class _MainScreenState extends State<MainScreen> {
     final unread = auth.unreadNotifs;
 
     return Scaffold(
-      appBar: _buildAppBar(auth, unread, locale),
+      appBar: _index == 0 ? _buildAppBar(auth, unread, locale) : null,
       body: IndexedStack(index: _index, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        backgroundColor: Colors.white,
-        indicatorColor: AppTheme.primary.withOpacity(0.12),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: const Icon(Icons.home, color: AppTheme.primary),
-            label: locale.tr('home'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.sports_tennis_outlined),
-            selectedIcon: const Icon(Icons.sports_tennis, color: AppTheme.primary),
-            label: locale.tr('matches'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.storefront_outlined),
-            selectedIcon: const Icon(Icons.storefront, color: AppTheme.primary),
-            label: locale.tr('market'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.emoji_events_outlined),
-            selectedIcon: const Icon(Icons.emoji_events, color: AppTheme.primary),
-            label: locale.tr('tournaments'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.person_outline),
-            selectedIcon: const Icon(Icons.person, color: AppTheme.primary),
-            label: locale.tr('profile'),
-          ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.accent,
+        elevation: 6,
+        shape: const CircleBorder(),
+        onPressed: () => setState(() => _index = 0),
+        child: Icon(
+          Icons.home_rounded,
+          color: _index == 0 ? Colors.white : Colors.white70,
+          size: 30,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: _buildBottomBar(locale),
+    );
+  }
+
+  Widget _buildBottomBar(LocaleProvider locale) {
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 8,
+      height: 64,
+      color: Colors.white,
+      child: Row(
+        children: [
+          _navBtn(Icons.sports_tennis_outlined, Icons.sports_tennis,
+              locale.tr('matches'), 1),
+          _navBtn(Icons.event_note_outlined, Icons.event_note,
+              'Réservations', 2),
+          const Expanded(child: SizedBox()), // FAB notch
+          _navBtn(Icons.emoji_events_outlined, Icons.emoji_events,
+              locale.tr('tournaments'), 3),
+          _navBtn(Icons.storefront_outlined, Icons.storefront,
+              locale.tr('market'), 4),
         ],
       ),
     );
   }
 
-  PreferredSizeWidget? _buildAppBar(AuthProvider auth, int unread, LocaleProvider locale) {
-    if (_index != 0) return null;
+  Widget _navBtn(IconData icon, IconData activeIcon, String label, int idx) {
+    final active = _index == idx;
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() => _index = idx),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(active ? activeIcon : icon,
+                color: active ? AppTheme.primary : Colors.grey.shade500,
+                size: 22),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+                    color: active ? AppTheme.primary : Colors.grey.shade500)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+      AuthProvider auth, int unread, LocaleProvider locale) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(62),
       child: AppBar(
@@ -111,20 +139,25 @@ class _MainScreenState extends State<MainScreen> {
                         color: Colors.white,
                         letterSpacing: 0.3)),
                 if (auth.currentUser != null)
-                  Text('${locale.locale == 'ar' ? 'مرحباً' : locale.locale == 'en' ? 'Hello' : 'Bonjour'}, ${auth.currentUser!.firstName} 👋',
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.white70)),
+                  Text(
+                      '${locale.locale == 'ar' ? 'مرحباً' : locale.locale == 'en' ? 'Hello' : 'Bonjour'}, ${auth.currentUser!.firstName} 👋',
+                      style: const TextStyle(fontSize: 11, color: Colors.white70)),
               ],
             ),
           ],
         ),
         actions: [
+          // Profile
           _iconBtn(
-            Icons.calendar_month_outlined,
+            Icons.person_outline,
             () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ReservationsScreen())),
+                MaterialPageRoute(builder: (_) => const ProfileScreen())),
           ),
+          // Notifications
           _notifBtn(unread),
+          // Club admin
+          if (auth.isClubAdmin) _clubAdminBtn(),
+          // Super admin
           if (auth.isAdmin)
             _iconBtn(
               Icons.admin_panel_settings_outlined,
@@ -133,6 +166,37 @@ class _MainScreenState extends State<MainScreen> {
             ),
           const SizedBox(width: 4),
         ],
+      ),
+    );
+  }
+
+  Widget _clubAdminBtn() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const ClubAdminScreen())),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.manage_accounts_outlined,
+                  color: Colors.white, size: 22),
+              Positioned(
+                right: -3,
+                bottom: -3,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                      color: AppTheme.accent, shape: BoxShape.circle),
+                  child: const Icon(Icons.settings, color: Colors.white, size: 8),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

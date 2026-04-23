@@ -1,9 +1,14 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../models/app_user.dart';
 import '../models/match.dart';
+import '../services/auth_service.dart';
 import '../services/match_service.dart';
+import '../services/notification_service.dart';
 import '../services/user_preferences.dart';
+import '../state/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_painter.dart';
 import 'payment_screen.dart';
@@ -110,6 +115,57 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       backgroundColor: ok ? Colors.green : Colors.red,
     ));
     if (ok) _reload();
+  }
+
+  Future<void> _inviteFriend() async {
+    final me = context.read<AuthProvider>().currentUser;
+
+    // Load all users, exclude self + already in match
+    final authSvc = AuthService();
+    final allUsers = await authSvc.getAllUsers();
+    final available = allUsers
+        .where((u) => u.id != me?.id)
+        .where((u) => !(_match?.players
+            .any((p) => p.name.toLowerCase() == u.fullName.toLowerCase()) ?? false))
+        .toList();
+
+    if (!mounted) return;
+    if (available.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tous les joueurs sont déjà dans ce match')));
+      return;
+    }
+
+    // Split: friends first, then others
+    final friendIds = me?.friendIds ?? [];
+    final friends = available.where((u) => friendIds.contains(u.id)).toList();
+    final others = available.where((u) => !friendIds.contains(u.id)).toList();
+    final sorted = [...friends, ...others];
+
+    final selected = await showModalBottomSheet<AppUser>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => _InviteSheet(
+        users: sorted,
+        friendIds: friendIds,
+      ),
+    );
+
+    if (selected == null || !mounted) return;
+
+    await NotificationService().push(
+      userId: selected.id,
+      title: 'Invitation au match 🎾',
+      body: '${me?.fullName ?? 'Quelqu\'un'} vous a invité à rejoindre un match sur ${_match?.courtName ?? 'un terrain'}. Rejoignez-le depuis l\'onglet Matches !',
+      type: 'match_invite',
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Invitation envoyée à ${selected.fullName} !'),
+      backgroundColor: Colors.green,
+    ));
   }
 
   Future<void> _pay(MatchPlayer player) async {
@@ -263,10 +319,43 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                 const Text('Joueurs inscrits',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold)),
-                Text('${match.players.length}/${match.maxPlayers}',
-                    style: const TextStyle(
-                        color: Color(0xFF2E7D32),
-                        fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Text('${match.players.length}/${match.maxPlayers}',
+                        style: const TextStyle(
+                            color: Color(0xFF2E7D32),
+                            fontWeight: FontWeight.bold)),
+                    if (_isAlreadyIn && !match.isFull) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _inviteFriend,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: AppTheme.primary.withOpacity(0.4)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.person_add,
+                                  color: AppTheme.primary, size: 14),
+                              SizedBox(width: 4),
+                              Text('Inviter',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.primary,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
             const Divider(height: 20),
@@ -408,5 +497,165 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     }
 
     return null;
+  }
+}
+
+class _InviteSheet extends StatefulWidget {
+  final List<AppUser> users;
+  final List<String> friendIds;
+  const _InviteSheet({required this.users, required this.friendIds});
+
+  @override
+  State<_InviteSheet> createState() => _InviteSheetState();
+}
+
+class _InviteSheetState extends State<_InviteSheet> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _query.isEmpty
+        ? widget.users
+        : widget.users
+            .where((u) =>
+                u.fullName.toLowerCase().contains(_query) ||
+                u.email.toLowerCase().contains(_query))
+            .toList();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scroll) => Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                const Icon(Icons.person_add, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                const Text('Inviter au match',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Text('${widget.users.length} joueur(s)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Rechercher par nom…',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                isDense: true,
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _query = '');
+                        })
+                    : null,
+              ),
+              onChanged: (v) => setState(() => _query = v.toLowerCase()),
+            ),
+          ),
+          const Divider(height: 12),
+          Expanded(
+            child: filtered.isEmpty
+                ? const Center(child: Text('Aucun joueur trouvé'))
+                : ListView.builder(
+                    controller: scroll,
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) {
+                      final u = filtered[i];
+                      final isFriend = widget.friendIds.contains(u.id);
+                      return ListTile(
+                        leading: Stack(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor:
+                                  AppTheme.primary.withOpacity(0.1),
+                              child: Text(u.avatarEmoji,
+                                  style: const TextStyle(fontSize: 20)),
+                            ),
+                            if (isFriend)
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                      color: AppTheme.primary,
+                                      shape: BoxShape.circle),
+                                  child: const Icon(Icons.people,
+                                      color: Colors.white, size: 8),
+                                ),
+                              ),
+                          ],
+                        ),
+                        title: Row(
+                          children: [
+                            Text(u.fullName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                            if (isFriend) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text('Ami',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppTheme.primary,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
+                        ),
+                        subtitle: Text('Niv. ${u.level}  •  ${u.email}',
+                            style: const TextStyle(fontSize: 11)),
+                        trailing: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, u),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text('Inviter',
+                              style: TextStyle(fontSize: 13)),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }

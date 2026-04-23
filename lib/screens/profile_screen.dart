@@ -446,6 +446,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(color: Colors.red)),
               onPressed: () async {
                 await auth.logout();
+                if (mounted) {
+                  Navigator.of(context).popUntil((r) => r.isFirst);
+                }
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.red),

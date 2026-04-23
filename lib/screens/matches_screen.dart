@@ -122,7 +122,7 @@ class _MatchesScreenState extends State<MatchesScreen>
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 12, 16, 8),
             child: Row(
               children: [
                 Container(
