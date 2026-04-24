@@ -4,7 +4,7 @@ import '../models/court.dart';
 // Color schemes per court
 const _courtColors = {
   'c1': [Color(0xFF1565C0), Color(0xFF0D47A1)], // blue indoor
-  'c2': [Color(0xFF2E7D32), Color(0xFF1B5E20)], // green outdoor
+  'c2': [Color(0xFF1565C0), Color(0xFF0D47A1)], // green outdoor
   'c3': [Color(0xFF6A1B9A), Color(0xFF4A148C)], // purple VIP
   'c4': [Color(0xFF00695C), Color(0xFF004D40)], // teal outdoor
 };
@@ -23,7 +23,7 @@ class CourtImageWidget extends StatelessWidget {
 
   List<Color> get _colors =>
       _courtColors[court.id] ??
-      [const Color(0xFF2E7D32), const Color(0xFF1B5E20)];
+      [const Color(0xFF1565C0), const Color(0xFF0D47A1)];
 
   @override
   Widget build(BuildContext context) {

@@ -28,6 +28,7 @@ class CourtService {
     required String address,
     required double latitude,
     required double longitude,
+    int maxReservationsPerSlot = 1,
   }) async {
     final court = Court(
       id: const Uuid().v4(),
@@ -38,6 +39,7 @@ class CourtService {
       address: address,
       latitude: latitude,
       longitude: longitude,
+      maxReservationsPerSlot: maxReservationsPerSlot,
     );
     await _courts.doc(court.id).set(court.toMap());
     return court;

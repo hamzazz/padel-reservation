@@ -320,7 +320,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
                           : isToday
                               ? const Color(0xFF1565C0).withOpacity(0.1)
                               : count > 0
-                                  ? Colors.green.withOpacity(0.08)
+                                  ? AppTheme.primary.withOpacity(0.08)
                                   : null,
                       borderRadius: BorderRadius.circular(8),
                       border: isToday && !isSelected
@@ -350,7 +350,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? Colors.white
-                                  : Colors.green.shade600,
+                                  : AppTheme.primary,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -361,7 +361,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
                               fontSize: 9,
                               color: isSelected
                                   ? Colors.white70
-                                  : Colors.green.shade700,
+                                  : AppTheme.primaryDark,
                             ),
                           ),
                       ],
@@ -673,7 +673,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
                       horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: isOpen
-                        ? Colors.green.withOpacity(0.1)
+                        ? AppTheme.primary.withOpacity(0.1)
                         : Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -682,7 +682,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
                     style: TextStyle(
                         fontSize: 11,
                         color:
-                            isOpen ? Colors.green.shade700 : Colors.orange,
+                            isOpen ? AppTheme.primaryDark : Colors.orange,
                         fontWeight: FontWeight.bold),
                   ),
                 ),

@@ -31,6 +31,7 @@ class _BookingScreenState extends State<BookingScreen> {
   bool _loading = false;
   bool _checkingSlot = false;
   bool _slotTaken = false;
+  int _slotCount = 0;
 
   @override
   void initState() {
@@ -38,7 +39,7 @@ class _BookingScreenState extends State<BookingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final courts = context.read<CourtProvider>().courts;
       if (_selectedCourt == null && courts.isNotEmpty) {
-        setState(() => _selectedCourt = courts.first);
+        setState(() => _selectedCourt = widget.preselectedCourt ?? courts.first);
       }
     });
   }
@@ -76,9 +77,11 @@ class _BookingScreenState extends State<BookingScreen> {
       _checkingSlot = true;
       _selectedSlot = slot;
     });
-    final taken = await _service.isSlotTaken(_selectedCourt!.id, _selectedDate, slot);
+    final court = _selectedCourt!;
+    final count = await _service.countSlotReservations(court.id, _selectedDate, slot);
     setState(() {
-      _slotTaken = taken;
+      _slotCount = count;
+      _slotTaken = count >= court.maxReservationsPerSlot;
       _checkingSlot = false;
     });
   }
@@ -137,7 +140,7 @@ class _BookingScreenState extends State<BookingScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
-                color: Color(0xFFE8F5E9),
+                color: Color(0xFFE3F2FD),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check_circle, color: AppTheme.primary, size: 56),
@@ -383,28 +386,42 @@ class _BookingScreenState extends State<BookingScreen> {
                     : Colors.grey.shade300,
               ),
             ),
-            child: Row(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (_checkingSlot && isSelected)
-                  const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                else if (isSelected && _slotTaken)
-                  const Icon(Icons.block, size: 14, color: Colors.white)
-                else if (isSelected)
-                  const Icon(Icons.check, size: 14, color: Colors.white),
-                if (isSelected) const SizedBox(width: 4),
-                Text(
-                  slot,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_checkingSlot && isSelected)
+                      const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    else if (isSelected && _slotTaken)
+                      const Icon(Icons.block, size: 14, color: Colors.white)
+                    else if (isSelected)
+                      const Icon(Icons.check, size: 14, color: Colors.white),
+                    if (isSelected) const SizedBox(width: 4),
+                    Text(
+                      slot,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isSelected ? Colors.white : Colors.black87,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ],
                 ),
+                if (isSelected && !_checkingSlot &&
+                    (_selectedCourt?.maxReservationsPerSlot ?? 1) > 1)
+                  Text(
+                    '${(_selectedCourt!.maxReservationsPerSlot) - _slotCount}/${_selectedCourt!.maxReservationsPerSlot} libres',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withOpacity(0.85),
+                    ),
+                  ),
               ],
             ),
           ),

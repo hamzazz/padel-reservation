@@ -207,7 +207,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
           SliverAppBar(
             expandedHeight: 180,
             pinned: true,
-            backgroundColor: const Color(0xFF1A5C20),
+            backgroundColor: const Color(0xFF0D47A1),
             flexibleSpace: FlexibleSpaceBar(
               title: Text(match.courtName,
                   style: const TextStyle(
@@ -237,7 +237,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   }
 
   Widget _statusBanner(Match match) {
-    final color = match.isFull ? Colors.orange : const Color(0xFF2E7D32);
+    final color = match.isFull ? Colors.orange : const Color(0xFF1565C0);
     final icon = match.isFull ? Icons.lock : Icons.lock_open;
     final text = match.isFull
         ? 'Match complet'
@@ -323,7 +323,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   children: [
                     Text('${match.players.length}/${match.maxPlayers}',
                         style: const TextStyle(
-                            color: Color(0xFF2E7D32),
+                            color: Color(0xFF1565C0),
                             fontWeight: FontWeight.bold)),
                     if (_isAlreadyIn && !match.isFull) ...[
                       const SizedBox(width: 8),
@@ -401,11 +401,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       leading: CircleAvatar(
         backgroundColor: isOrganizer
             ? AppTheme.accent.withOpacity(0.2)
-            : const Color(0xFF2E7D32).withOpacity(0.1),
+            : const Color(0xFF1565C0).withOpacity(0.1),
         child: Text(
           player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
           style: TextStyle(
-            color: isOrganizer ? AppTheme.accent : const Color(0xFF2E7D32),
+            color: isOrganizer ? AppTheme.accent : const Color(0xFF1565C0),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -488,7 +488,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
             label: const Text('Rejoindre le match'),
             onPressed: _joinMatch,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: const Color(0xFF1565C0),
               minimumSize: const Size(double.infinity, 52),
             ),
           ),

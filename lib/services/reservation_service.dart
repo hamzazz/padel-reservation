@@ -38,13 +38,13 @@ class ReservationService {
     await _col.doc(id).delete();
   }
 
-  Future<bool> isSlotTaken(String courtId, DateTime date, String timeSlot) async {
+  Future<int> countSlotReservations(String courtId, DateTime date, String timeSlot) async {
     try {
       final snap = await _col
           .where('courtId', isEqualTo: courtId)
           .where('timeSlot', isEqualTo: timeSlot)
           .get();
-      return snap.docs.any((d) {
+      return snap.docs.where((d) {
         final data = d.data();
         final storedDate = data['date'] is Timestamp
             ? (data['date'] as Timestamp).toDate()
@@ -52,10 +52,16 @@ class ReservationService {
         return storedDate.year == date.year &&
             storedDate.month == date.month &&
             storedDate.day == date.day;
-      });
+      }).length;
     } catch (e) {
-      return false;
+      return 0;
     }
+  }
+
+  Future<bool> isSlotTaken(String courtId, DateTime date, String timeSlot,
+      {int maxReservations = 1}) async {
+    final count = await countSlotReservations(courtId, date, timeSlot);
+    return count >= maxReservations;
   }
 
   static Map<String, dynamic> _ts(Map<String, dynamic> map) {

@@ -455,7 +455,7 @@ class _AdminScreenState extends State<AdminScreen>
                             style: const TextStyle(fontSize: 12),
                             overflow: TextOverflow.ellipsis),
                         Text(
-                          '${c.pricePerHour.toStringAsFixed(0)} DH/h · ${c.isIndoor ? 'Couvert' : 'Extérieur'}',
+                          '${c.pricePerHour.toStringAsFixed(0)} DH/h · ${c.isIndoor ? 'Couvert' : 'Extérieur'} · max ${c.maxReservationsPerSlot}/créneau',
                           style: TextStyle(
                               fontSize: 12,
                               color: AppTheme.primary,
@@ -500,6 +500,7 @@ class _AdminScreenState extends State<AdminScreen>
     double? lng = existing?.longitude;
     bool geocoding = false;
     String? geocodeStatus;
+    int maxReservationsPerSlot = existing?.maxReservationsPerSlot ?? 1;
     final formKey = GlobalKey<FormState>();
 
     await showModalBottomSheet(
@@ -628,6 +629,44 @@ class _AdminScreenState extends State<AdminScreen>
                     Text('Coordonnées : ${lat!.toStringAsFixed(5)}, ${lng!.toStringAsFixed(5)}',
                         style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                   ],
+                  const SizedBox(height: 14),
+                  // ── Réservations max par créneau ───────────────────
+                  Row(
+                    children: [
+                      const Icon(Icons.event_available, color: AppTheme.primary, size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text('Réservations max par créneau :',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        color: AppTheme.primary,
+                        onPressed: maxReservationsPerSlot > 1
+                            ? () => setS(() => maxReservationsPerSlot--)
+                            : null,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('$maxReservationsPerSlot',
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        color: AppTheme.primary,
+                        onPressed: maxReservationsPerSlot < 20
+                            ? () => setS(() => maxReservationsPerSlot++)
+                            : null,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   // ── Type ──────────────────────────────────────────
                   Row(
@@ -690,6 +729,7 @@ class _AdminScreenState extends State<AdminScreen>
                           address: addrCtrl.text.trim(),
                           latitude: lat!,
                           longitude: lng!,
+                          maxReservationsPerSlot: maxReservationsPerSlot,
                         );
                       } else {
                         await provider.updateCourt(existing.copyWith(
@@ -700,6 +740,7 @@ class _AdminScreenState extends State<AdminScreen>
                           address: addrCtrl.text.trim(),
                           latitude: lat!,
                           longitude: lng!,
+                          maxReservationsPerSlot: maxReservationsPerSlot,
                         ));
                       }
                       if (mounted) Navigator.pop(ctx);
@@ -783,7 +824,7 @@ class _AdminScreenState extends State<AdminScreen>
                             style: const TextStyle(fontSize: 12),
                             overflow: TextOverflow.ellipsis),
                         Text(
-                          '${club.courtIds.length} terrain(s) · ${club.adminIds.length} admin(s)',
+                          '${club.courtIds.length} terrain(s) assigné(s) · ${club.adminIds.length} admin(s)',
                           style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF1565C0),
@@ -825,7 +866,8 @@ class _AdminScreenState extends State<AdminScreen>
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
         padding: EdgeInsets.fromLTRB(
             20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: Form(
@@ -896,7 +938,7 @@ class _AdminScreenState extends State<AdminScreen>
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

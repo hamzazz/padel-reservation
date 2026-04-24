@@ -7,6 +7,7 @@ class Court {
   final String address;
   final double latitude;
   final double longitude;
+  final int maxReservationsPerSlot;
 
   const Court({
     required this.id,
@@ -17,6 +18,7 @@ class Court {
     required this.address,
     required this.latitude,
     required this.longitude,
+    this.maxReservationsPerSlot = 1,
   });
 
   Court copyWith({
@@ -27,6 +29,7 @@ class Court {
     String? address,
     double? latitude,
     double? longitude,
+    int? maxReservationsPerSlot,
   }) =>
       Court(
         id: id,
@@ -37,6 +40,7 @@ class Court {
         address: address ?? this.address,
         latitude: latitude ?? this.latitude,
         longitude: longitude ?? this.longitude,
+        maxReservationsPerSlot: maxReservationsPerSlot ?? this.maxReservationsPerSlot,
       );
 
   Map<String, dynamic> toMap() => {
@@ -48,6 +52,7 @@ class Court {
         'address': address,
         'latitude': latitude,
         'longitude': longitude,
+        'maxReservationsPerSlot': maxReservationsPerSlot,
       };
 
   factory Court.fromMap(Map<String, dynamic> m) => Court(
@@ -59,6 +64,7 @@ class Court {
         address: m['address'] as String? ?? '',
         latitude: (m['latitude'] as num).toDouble(),
         longitude: (m['longitude'] as num).toDouble(),
+        maxReservationsPerSlot: (m['maxReservationsPerSlot'] as int?) ?? 1,
       );
 }
 

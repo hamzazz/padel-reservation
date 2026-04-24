@@ -30,6 +30,7 @@ class CourtProvider extends ChangeNotifier {
     required String address,
     required double latitude,
     required double longitude,
+    int maxReservationsPerSlot = 1,
   }) async {
     final court = await _svc.add(
       name: name,
@@ -39,6 +40,7 @@ class CourtProvider extends ChangeNotifier {
       address: address,
       latitude: latitude,
       longitude: longitude,
+      maxReservationsPerSlot: maxReservationsPerSlot,
     );
     _courts.add(court);
     notifyListeners();

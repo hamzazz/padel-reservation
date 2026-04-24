@@ -5,7 +5,6 @@ class Club {
   final List<String> courtIds;
   final List<String> adminIds;
   final DateTime createdAt;
-
   Club({
     required this.id,
     required this.name,

@@ -389,7 +389,7 @@ class _TournamentCard extends StatelessWidget {
     final user = context.read<AuthProvider>().currentUser;
     final isIn = tournament.participantIds.contains(user?.id);
     final statusColor = {
-          'open': Colors.green,
+          'open': AppTheme.primary,
           'full': Colors.orange,
           'ongoing': Colors.blue,
           'completed': Colors.grey,
@@ -555,13 +555,13 @@ class _TournamentCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: AppTheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 16),
+                        Icon(Icons.check_circle, color: AppTheme.primary, size: 16),
                         SizedBox(width: 6),
                         Text('Inscrit',
                             style: TextStyle(
@@ -593,13 +593,13 @@ class _TournamentCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: AppTheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      Icon(Icons.check_circle, color: AppTheme.primary, size: 16),
                       SizedBox(width: 6),
                       Text('Inscrit',
                           style: TextStyle(

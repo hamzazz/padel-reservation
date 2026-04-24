@@ -46,7 +46,7 @@ Widget buildCourtSliverBackground() {
       Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A5C20), Color(0xFF2E7D32), Color(0xFF43A047)],
+            colors: [Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF1976D2)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

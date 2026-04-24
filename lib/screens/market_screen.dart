@@ -122,7 +122,7 @@ class _MarketScreenState extends State<MarketScreen>
                         label: const Text('Neuf'),
                         selected: isNew,
                         onSelected: (_) => setS(() => isNew = true),
-                        selectedColor: Colors.green.withOpacity(0.2),
+                        selectedColor: AppTheme.primary.withOpacity(0.2),
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(

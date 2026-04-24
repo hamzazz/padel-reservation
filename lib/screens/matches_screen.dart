@@ -245,7 +245,7 @@ class _MatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFull = match.isFull;
-    final statusColor = isFull ? Colors.red : const Color(0xFF2E7D32);
+    final statusColor = isFull ? Colors.red : const Color(0xFF1565C0);
     final statusText = isFull ? 'Complet' : '${match.availableSpots} place(s)';
 
     final myName = currentPlayerName?.toLowerCase();
