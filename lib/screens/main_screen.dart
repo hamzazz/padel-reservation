@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/auth_provider.dart';
 import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
-import 'home_screen.dart';
+import 'chat_home_screen.dart';
 import 'matches_screen.dart';
 import 'market_screen.dart';
 import 'tournaments_screen.dart';
@@ -23,7 +23,7 @@ class _MainScreenState extends State<MainScreen> {
   int _index = 0;
 
   final _screens = const [
-    HomeScreen(),
+    ChatHomeScreen(),
     MatchesScreen(),
     ReservationsScreen(),
     TournamentsScreen(),
