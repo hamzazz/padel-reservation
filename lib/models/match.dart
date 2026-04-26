@@ -33,6 +33,11 @@ class MatchPlayer {
       );
 }
 
+const List<String> levelLabels = [
+  '', 'Débutant', 'Novice', 'Intermédiaire−', 'Intermédiaire',
+  'Intermédiaire+', 'Avancé', 'Expert', 'Pro',
+];
+
 class Match {
   final String id;
   final String organizerId;
@@ -46,6 +51,7 @@ class Match {
   final double pricePerPlayer;
   final String status;
   final DateTime createdAt;
+  final int level;
 
   Match({
     required this.id,
@@ -60,10 +66,12 @@ class Match {
     required this.pricePerPlayer,
     required this.status,
     required this.createdAt,
+    this.level = 0,
   });
 
   bool get isFull => players.length >= maxPlayers;
   int get availableSpots => maxPlayers - players.length;
+  String get levelLabel => level > 0 && level <= 8 ? levelLabels[level] : 'Tous niveaux';
 
   Match copyWith({List<MatchPlayer>? players, String? status}) => Match(
         id: id,
@@ -78,6 +86,7 @@ class Match {
         pricePerPlayer: pricePerPlayer,
         status: status ?? this.status,
         createdAt: createdAt,
+        level: level,
       );
 
   Map<String, dynamic> toMap() => {
@@ -93,6 +102,7 @@ class Match {
         'pricePerPlayer': pricePerPlayer,
         'status': status,
         'createdAt': createdAt.toIso8601String(),
+        'level': level,
       };
 
   factory Match.fromMap(Map<String, dynamic> map) => Match(
@@ -110,5 +120,6 @@ class Match {
         pricePerPlayer: (map['pricePerPlayer'] as num).toDouble(),
         status: map['status'],
         createdAt: DateTime.parse(map['createdAt']),
+        level: (map['level'] as int?) ?? 0,
       );
 }

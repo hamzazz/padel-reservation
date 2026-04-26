@@ -26,6 +26,7 @@ class _MatchesScreenState extends State<MatchesScreen>
   late TabController _tabController;
   late Future<List<Match>> _future;
   String? _currentPlayerName;
+  int _levelFilter = 0;
 
   @override
   void initState() {
@@ -67,10 +68,14 @@ class _MatchesScreenState extends State<MatchesScreen>
                 }
                 final all = snap.data ?? [];
                 final now = DateTime.now();
-                final upcoming = all
+                var upcoming = all
                     .where((m) =>
                         m.date.isAfter(now.subtract(const Duration(hours: 2))))
                     .toList();
+
+                if (_levelFilter > 0) {
+                  upcoming = upcoming.where((m) => m.level == _levelFilter).toList();
+                }
 
                 final user = context.read<AuthProvider>().currentUser;
                 final userId = user?.id ?? '';
@@ -158,6 +163,19 @@ class _MatchesScreenState extends State<MatchesScreen>
               ],
             ),
           ),
+          // Filtre par niveau
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                _levelFilterChip(0, 'Tous'),
+                ...List.generate(8, (i) => _levelFilterChip(i + 1, 'Niv.${i + 1}')),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
           Builder(builder: (ctx) {
             final locale = ctx.watch<LocaleProvider>();
             return TabBar(
@@ -174,6 +192,27 @@ class _MatchesScreenState extends State<MatchesScreen>
             );
           }),
         ],
+      ),
+    );
+  }
+
+  Widget _levelFilterChip(int level, String label) {
+    final sel = _levelFilter == level;
+    return GestureDetector(
+      onTap: () => setState(() => _levelFilter = level),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: sel ? Colors.white : Colors.white.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: sel ? AppTheme.primary : Colors.white)),
       ),
     );
   }
@@ -336,6 +375,21 @@ class _MatchCard extends StatelessWidget {
                       DateFormat('dd/MM/yyyy').format(match.date)),
                   const SizedBox(width: 12),
                   _info(Icons.access_time, match.timeSlot),
+                  if (match.level > 0) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('Niv.${match.level}',
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 8),

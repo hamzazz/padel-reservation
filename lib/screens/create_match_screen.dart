@@ -30,6 +30,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
   List<Reservation> _reservations = [];
   Reservation? _selectedReservation;
   int _maxPlayers = 4;
+  int _level = 0;
   bool _loading = false;
   bool _loadingRes = true;
 
@@ -122,6 +123,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
       pricePerPlayer: _pricePerPlayer,
       status: 'open',
       createdAt: DateTime.now(),
+      level: _level,
     );
 
     await _matchSvc.save(match);
@@ -212,6 +214,10 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 20),
+                    _label('Niveau du match'),
+                    const SizedBox(height: 8),
+                    _buildLevelSelector(),
                     const SizedBox(height: 20),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -534,6 +540,58 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildLevelSelector() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            _levelChip(0, 'Tous niveaux', Icons.people_outline),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: List.generate(8, (i) {
+            final lvl = i + 1;
+            return _levelChip(lvl, 'Niv. $lvl — ${levelLabels[lvl]}', null);
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _levelChip(int lvl, String label, IconData? icon) {
+    final sel = _level == lvl;
+    return GestureDetector(
+      onTap: () => setState(() => _level = lvl),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: sel ? AppTheme.primary : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: sel ? AppTheme.primary : Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 14, color: sel ? Colors.white : Colors.grey),
+              const SizedBox(width: 4),
+            ],
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: sel ? Colors.white : Colors.grey.shade700)),
+          ],
+        ),
+      ),
     );
   }
 
