@@ -12,6 +12,7 @@ import 'notifications_screen.dart';
 import 'admin_screen.dart';
 import 'club_admin_screen.dart';
 import 'reservations_screen.dart';
+import 'elo_leaderboard_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -147,6 +148,12 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
         actions: [
+          // ELO Leaderboard
+          _iconBtn(
+            Icons.emoji_events_outlined,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const EloLeaderboardScreen())),
+          ),
           // Profile
           _iconBtn(
             Icons.person_outline,

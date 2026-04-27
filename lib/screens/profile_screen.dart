@@ -6,6 +6,10 @@ import '../services/review_service.dart';
 import '../state/auth_provider.dart';
 import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
+import '../models/elo_match.dart';
+import '../services/elo_service.dart';
+import '../widgets/elo_tier_badge.dart';
+import 'elo_match_result_screen.dart';
 import 'wallet_screen.dart';
 import 'players_screen.dart';
 
@@ -19,8 +23,11 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _authSvc = AuthService();
   final _reviewSvc = ReviewService();
+  final _eloSvc = EloService();
   AppUser? _viewUser;
   double _avgRating = 0;
+  List<EloMatch> _recentElo = [];
+  int _pendingEloCount = 0;
   bool _loading = true;
 
   bool get isOwnProfile =>
@@ -35,21 +42,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _load() async {
-    final auth = context.read<AuthProvider>();
-    if (widget.viewUserId == null ||
-        widget.viewUserId == auth.currentUser?.id) {
-      _viewUser = auth.currentUser;
-    } else {
-      final all = await _authSvc.getAllUsers();
-      try {
-        _viewUser =
-            all.firstWhere((u) => u.id == widget.viewUserId);
-      } catch (_) {}
+    try {
+      final auth = context.read<AuthProvider>();
+      if (widget.viewUserId == null ||
+          widget.viewUserId == auth.currentUser?.id) {
+        _viewUser = auth.currentUser;
+      } else {
+        final all = await _authSvc.getAllUsers();
+        try {
+          _viewUser = all.firstWhere((u) => u.id == widget.viewUserId);
+        } catch (_) {}
+      }
+      if (_viewUser != null) {
+        final results = await Future.wait([
+          _reviewSvc.averageRating(_viewUser!.id),
+          _eloSvc.getRecentForUser(_viewUser!.id, limit: 5),
+        ]);
+        _avgRating = results[0] as double;
+        _recentElo = results[1] as List<EloMatch>;
+      }
+      if (auth.currentUser != null && isOwnProfile) {
+        _pendingEloCount =
+            (await _eloSvc.getPendingForUser(auth.currentUser!.id)).length;
+      }
+    } catch (_) {
+      // Ensure spinner stops even on network/Firestore error
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    if (_viewUser != null) {
-      _avgRating = await _reviewSvc.averageRating(_viewUser!.id);
-    }
-    setState(() => _loading = false);
   }
 
   Future<void> _editProfile() async {
@@ -358,6 +378,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                       ],
+                      // ELO tier badge
+                      const SizedBox(height: 12),
+                      EloTierBadge(elo: u.eloRating, large: true, showScore: true),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: EloProgressBar(elo: u.eloRating),
+                      ),
                     ],
                   ),
                 ),
@@ -375,6 +403,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _infoTile(Icons.group, 'Amis', '${u.friendIds.length} ami(s)'),
               ],
             ),
+          ),
+          const SizedBox(height: 12),
+          const SizedBox(height: 12),
+          // ELO stats card
+          _EloStatsCard(
+            user: u,
+            recentMatches: _recentElo,
+            pendingCount: isOwnProfile ? _pendingEloCount : 0,
+            isOwnProfile: isOwnProfile,
+            onDeclare: isOwnProfile
+                ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const EloMatchResultScreen()))
+                    .then((_) => _load())
+                : null,
           ),
           const SizedBox(height: 12),
           // Wallet (own only)
@@ -493,6 +537,188 @@ class _ProfileScreenState extends State<ProfileScreen> {
       subtitle: Text(value,
           style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+// ── ELO stats card ───────────────────────────────────────────────────────────
+
+class _EloStatsCard extends StatelessWidget {
+  final AppUser user;
+  final List<EloMatch> recentMatches;
+  final int pendingCount;
+  final bool isOwnProfile;
+  final VoidCallback? onDeclare;
+
+  const _EloStatsCard({
+    required this.user,
+    required this.recentMatches,
+    required this.pendingCount,
+    required this.isOwnProfile,
+    this.onDeclare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final winRate = user.eloMatchesPlayed > 0
+        ? (user.eloWins / user.eloMatchesPlayed * 100).round()
+        : 0;
+    final losses = user.eloMatchesPlayed - user.eloWins;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('📊',
+                    style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 6),
+                const Text('Classement ELO',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15)),
+                const Spacer(),
+                if (pendingCount > 0)
+                  GestureDetector(
+                    onTap: onDeclare,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Text('$pendingCount en attente',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Stats row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _stat('${user.eloRating}', 'ELO',
+                    Color(eloTierColorValue(user.eloRating))),
+                _stat('${user.eloMatchesPlayed}', 'Matchs',
+                    AppTheme.primary),
+                _stat('${user.eloWins}W / ${losses}L', 'Résultats',
+                    Colors.green),
+                _stat('$winRate%', 'Victoires', Colors.orange),
+              ],
+            ),
+            // Recent ELO history
+            if (recentMatches.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Text('Historique récent',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 12)),
+              const SizedBox(height: 8),
+              ...recentMatches.map((m) {
+                final isTeam1 = m.team1Ids.contains(user.id);
+                final won = (isTeam1 && m.winnerTeam == '1') ||
+                    (!isTeam1 && m.winnerTeam == '2');
+                final delta = m.eloChanges[user.id] ?? 0;
+                final before = m.eloBefore[user.id] ?? user.eloRating;
+                final myTeam =
+                    isTeam1 ? m.team1Names : m.team2Names;
+                final oppTeam =
+                    isTeam1 ? m.team2Names : m.team1Names;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: won
+                        ? Colors.green.shade50
+                        : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: won
+                            ? Colors.green.shade200
+                            : Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(won ? '🏆' : '💔',
+                          style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${myTeam.join(' & ')} vs ${oppTeam.join(' & ')}',
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '$before ELO → ${before + delta} ELO',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${delta >= 0 ? '+' : ''}$delta',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: delta >= 0
+                                ? Colors.green.shade700
+                                : Colors.red.shade700),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+            if (isOwnProfile) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.add_circle_outline, size: 16),
+                  label: const Text('Déclarer un résultat de match'),
+                  onPressed: onDeclare,
+                  style: OutlinedButton.styleFrom(
+                    side:
+                        const BorderSide(color: AppTheme.primary),
+                    foregroundColor: AppTheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stat(String value, String label, Color color) {
+    return Column(
+      children: [
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: color)),
+        const SizedBox(height: 2),
+        Text(label,
+            style:
+                TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+      ],
     );
   }
 }

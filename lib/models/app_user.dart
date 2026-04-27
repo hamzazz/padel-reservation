@@ -17,6 +17,10 @@ class AppUser {
   final bool isClubAdmin;
   final String clubId;
 
+  final int eloRating;        // ELO score, starts at 1000
+  final int eloMatchesPlayed;
+  final int eloWins;
+
   AppUser({
     required this.id,
     required this.email,
@@ -35,6 +39,9 @@ class AppUser {
     this.isBlockedByAdmin = false,
     this.isClubAdmin = false,
     this.clubId = '',
+    this.eloRating = 1000,
+    this.eloMatchesPlayed = 0,
+    this.eloWins = 0,
   });
 
   String get fullName => '$firstName $lastName';
@@ -56,6 +63,9 @@ class AppUser {
     bool? isBlockedByAdmin,
     bool? isClubAdmin,
     String? clubId,
+    int? eloRating,
+    int? eloMatchesPlayed,
+    int? eloWins,
   }) =>
       AppUser(
         id: id,
@@ -75,6 +85,9 @@ class AppUser {
         isBlockedByAdmin: isBlockedByAdmin ?? this.isBlockedByAdmin,
         isClubAdmin: isClubAdmin ?? this.isClubAdmin,
         clubId: clubId ?? this.clubId,
+        eloRating: eloRating ?? this.eloRating,
+        eloMatchesPlayed: eloMatchesPlayed ?? this.eloMatchesPlayed,
+        eloWins: eloWins ?? this.eloWins,
       );
 
   Map<String, dynamic> toMap() => {
@@ -95,6 +108,9 @@ class AppUser {
         'isBlockedByAdmin': isBlockedByAdmin,
         'isClubAdmin': isClubAdmin,
         'clubId': clubId,
+        'eloRating': eloRating,
+        'eloMatchesPlayed': eloMatchesPlayed,
+        'eloWins': eloWins,
       };
 
   factory AppUser.fromMap(Map<String, dynamic> m) => AppUser(
@@ -117,6 +133,9 @@ class AppUser {
         isBlockedByAdmin: m['isBlockedByAdmin'] ?? false,
         isClubAdmin: m['isClubAdmin'] ?? false,
         clubId: m['clubId'] ?? '',
+        eloRating: (m['eloRating'] as int?) ?? 1000,
+        eloMatchesPlayed: (m['eloMatchesPlayed'] as int?) ?? 0,
+        eloWins: (m['eloWins'] as int?) ?? 0,
       );
 }
 
