@@ -233,6 +233,88 @@ class AuthService {
     await _users.doc(userId).update({'isBlockedByAdmin': false});
   }
 
+  // ── Phone Auth — send OTP ─────────────────────────────────────────────
+  Future<void> sendPhoneOtp({
+    required String phoneNumber,
+    required void Function(PhoneAuthCredential) onAutoVerified,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(String error) onError,
+  }) async {
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      timeout: const Duration(seconds: 60),
+      verificationCompleted: onAutoVerified,
+      verificationFailed: (e) {
+        if (e.code == 'invalid-phone-number') {
+          onError('Numéro de téléphone invalide');
+        } else if (e.code == 'too-many-requests') {
+          onError('Trop de tentatives. Réessayez plus tard.');
+        } else {
+          onError('Erreur [${e.code}]: ${e.message}');
+        }
+      },
+      codeSent: onCodeSent,
+      codeAutoRetrievalTimeout: (_) {},
+    );
+  }
+
+  // ── Phone Auth — verify OTP ───────────────────────────────────────────
+  Future<({AppUser? user, String? error, bool isNew})> signInWithPhone({
+    required String verificationId,
+    required String smsCode,
+    String? firstName,
+    String? lastName,
+    String? avatarEmoji,
+    int level = 1,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      final cred = await _auth.signInWithCredential(credential);
+      final uid = cred.user!.uid;
+
+      AppUser? existing = await _getUserDoc(uid);
+      if (existing != null) {
+        if (existing.isBlockedByAdmin) {
+          await _auth.signOut();
+          return (user: null, error: 'Compte suspendu par un administrateur', isNew: false);
+        }
+        return (user: existing, error: null, isNew: false);
+      }
+
+      // New user — create profile
+      final phone = cred.user!.phoneNumber ?? '';
+      final user = AppUser(
+        id: uid,
+        email: '',
+        firstName: firstName ?? 'Joueur',
+        lastName: lastName ?? '',
+        phone: phone,
+        level: level,
+        walletBalance: 0,
+        avatarEmoji: avatarEmoji ?? '🎾',
+        isAdmin: false,
+        friendIds: [],
+        blockedIds: [],
+        createdAt: DateTime.now(),
+      );
+      await _users.doc(uid).set(user.toMap());
+      return (user: user, error: null, isNew: true);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-verification-code') {
+        return (user: null, error: 'Code incorrect. Vérifiez et réessayez.', isNew: false);
+      }
+      if (e.code == 'session-expired') {
+        return (user: null, error: 'Code expiré. Demandez un nouveau code.', isNew: false);
+      }
+      return (user: null, error: 'Erreur [${e.code}]: ${e.message}', isNew: false);
+    } catch (e) {
+      return (user: null, error: 'Erreur: $e', isNew: false);
+    }
+  }
+
   // ── Firebase Auth state stream ────────────────────────────────────────
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 

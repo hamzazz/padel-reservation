@@ -3,7 +3,11 @@ import 'package:provider/provider.dart';
 import '../../state/auth_provider.dart';
 import '../../state/locale_provider.dart';
 import '../../theme/app_theme.dart';
+import 'phone_auth_screen.dart';
 import 'register_screen.dart';
+
+const _whatsappGreen = Color(0xFF25D366);
+const _whatsappDark = Color(0xFF075E54);
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+  bool _showEmailForm = false;
 
   @override
   void dispose() {
@@ -62,7 +67,6 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              // Language picker at top
               Align(
                 alignment: locale.isRtl
                     ? Alignment.centerLeft
@@ -70,7 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: _LanguagePicker(),
               ),
               const SizedBox(height: 24),
-              // Logo
               Container(
                 width: 90,
                 height: 90,
@@ -98,80 +101,65 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Text(locale.tr('connectContinue'),
-                  style: TextStyle(
-                      color: Colors.grey.shade600, fontSize: 14)),
+                  style:
+                      TextStyle(color: Colors.grey.shade600, fontSize: 14)),
               const SizedBox(height: 36),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                      textDirection:
-                          locale.isRtl ? TextDirection.rtl : TextDirection.ltr,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        labelText: locale.tr('email'),
-                        hintText: 'votre@email.com',
-                      ),
-                      validator: (v) => (v == null || !v.contains('@'))
-                          ? 'Email invalide'
-                          : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _passCtrl,
-                      obscureText: _obscure,
-                      textDirection:
-                          locale.isRtl ? TextDirection.rtl : TextDirection.ltr,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        labelText: locale.tr('password'),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscure
-                              ? Icons.visibility_off
-                              : Icons.visibility),
-                          onPressed: () =>
-                              setState(() => _obscure = !_obscure),
+
+              // ── Primary: WhatsApp / Phone ────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _loading
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const PhoneAuthScreen()),
+                          ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _whatsappGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Text('📱', style: TextStyle(fontSize: 16)),
                         ),
                       ),
-                      validator: (v) => (v == null || v.length < 4)
-                          ? 'Minimum 4 caractères'
-                          : null,
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 52)),
-                        child: _loading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2))
-                            : Text(locale.tr('login')),
+                      const SizedBox(width: 10),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Continuer avec WhatsApp',
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold)),
+                          Text('Code SMS · Rapide & sécurisé',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white70)),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(locale.tr('or'),
-                        style: TextStyle(color: Colors.grey.shade500)),
-                  ),
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
-                ],
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+
+              // ── Social logins ────────────────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -186,12 +174,153 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: _socialBtn(
                       label: locale.tr('loginWithFacebook'),
                       emoji: '🔵',
-                      onTap: _loading ? null : () => _socialLogin('Facebook'),
+                      onTap:
+                          _loading ? null : () => _socialLogin('Facebook'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
+
+              // ── Divider + email toggle ───────────────────────────────
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(locale.tr('or'),
+                        style: TextStyle(color: Colors.grey.shade500)),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              GestureDetector(
+                onTap: () =>
+                    setState(() => _showEmailForm = !_showEmailForm),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _showEmailForm
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: AppTheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _showEmailForm
+                          ? 'Masquer connexion email'
+                          : 'Se connecter avec email',
+                      style: const TextStyle(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Secondary: Email form (collapsible) ──────────────────
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 250),
+                crossFadeState: _showEmailForm
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: const SizedBox.shrink(),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          textDirection: locale.isRtl
+                              ? TextDirection.rtl
+                              : TextDirection.ltr,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            labelText: locale.tr('email'),
+                            hintText: 'votre@email.com',
+                          ),
+                          validator: (v) =>
+                              (v == null || !v.contains('@'))
+                                  ? 'Email invalide'
+                                  : null,
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _passCtrl,
+                          obscureText: _obscure,
+                          textDirection: locale.isRtl
+                              ? TextDirection.rtl
+                              : TextDirection.ltr,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            labelText: locale.tr('password'),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscure
+                                  ? Icons.visibility_off
+                                  : Icons.visibility),
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                            ),
+                          ),
+                          validator: (v) => (v == null || v.length < 4)
+                              ? 'Minimum 4 caractères'
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _loading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                                minimumSize:
+                                    const Size(double.infinity, 52)),
+                            child: _loading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2))
+                                : Text(locale.tr('login')),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(locale.tr('demoAccounts'),
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              _demoRow(
+                                  'Admin', 'admin@padel.com', 'admin123'),
+                              _demoRow(
+                                  'Joueur', 'demo@padel.com', 'demo123'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -210,26 +339,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  children: [
-                    Text(locale.tr('demoAccounts'),
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    _demoRow('Admin', 'admin@padel.com', 'admin123'),
-                    _demoRow('Joueur', 'demo@padel.com', 'demo123'),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -271,7 +381,8 @@ class _LoginScreenState extends State<LoginScreen> {
           _passCtrl.text = pass;
         },
         child: Text('$role: $email / $pass',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            style:
+                TextStyle(fontSize: 11, color: Colors.grey.shade500)),
       ),
     );
   }

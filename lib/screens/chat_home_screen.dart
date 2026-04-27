@@ -64,6 +64,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   String _selectedSlot = '';
   List<Court> _availableCourts = [];
+  List<String> _availableSlots = [];
   Court? _selectedCourt;
   int _players = 2;
 
@@ -120,6 +121,30 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     _scrollToBottom();
   }
 
+  // ── Reset ────────────────────────────────────────────────────────────────────
+
+  void _reset() {
+    setState(() {
+      _msgs.clear();
+      _isTyping = false;
+      _saving = false;
+      _input = _Input.none;
+      _filter = 'all';
+      _date = DateTime.now().add(const Duration(days: 1));
+      _selectedSlot = '';
+      _availableCourts = [];
+      _availableSlots = [];
+      _selectedCourt = null;
+      _players = 2;
+      _availableMatches = [];
+      _userReservations = [];
+      _selectedReservation = null;
+      _maxMatchPlayers = 4;
+      _matchLevel = 0;
+    });
+    _start();
+  }
+
   // ── Entry point ─────────────────────────────────────────────────────────────
 
   Future<void> _start() async {
@@ -150,13 +175,74 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   Future<void> _onCourtType(String filter, String label) async {
     _filter = filter;
     _addUserMsg(label);
+
+    final allCourts = context.read<CourtProvider>().courts;
+    final filtered = allCourts.where((c) {
+      if (filter == 'indoor') return c.isIndoor;
+      if (filter == 'outdoor') return !c.isIndoor;
+      return true;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      final typeName = filter == 'indoor'
+          ? 'couvert'
+          : filter == 'outdoor'
+              ? 'extérieur'
+              : '';
+      await _botSay(
+        'Désolé, il n\'y a aucun terrain $typeName disponible dans notre club 😕\nVoulez-vous choisir un autre type ?',
+        _Input.courtType,
+      );
+      return;
+    }
+
     await _botSay('Quelle date souhaitez-vous réserver ?', _Input.date);
   }
 
   Future<void> _onDatePicked(DateTime date) async {
     _date = date;
     _addUserMsg(DateFormat('EEEE dd MMMM', 'fr').format(date));
-    await _botSay('Choisissez un créneau horaire :', _Input.slot);
+    setState(() => _isTyping = true);
+    _scrollToBottom();
+
+    final allCourts = context.read<CourtProvider>().courts;
+    final filtered = allCourts.where((c) {
+      if (_filter == 'indoor') return c.isIndoor;
+      if (_filter == 'outdoor') return !c.isIndoor;
+      return true;
+    }).toList();
+
+    // Check all slots in parallel
+    final slotResults = await Future.wait(timeSlots.map((slot) async {
+      final counts = await Future.wait(
+        filtered.map((c) => _resSvc.countSlotReservations(c.id, date, slot)),
+      );
+      final hasAvail = filtered
+          .asMap()
+          .entries
+          .any((e) => (counts[e.key]) < e.value.maxReservationsPerSlot);
+      return (slot: slot, available: hasAvail);
+    }));
+
+    if (!mounted) return;
+    final available =
+        slotResults.where((r) => r.available).map((r) => r.slot).toList();
+    setState(() {
+      _isTyping = false;
+      _availableSlots = available;
+    });
+
+    if (available.isEmpty) {
+      await _botSay(
+        'Aucun créneau disponible pour le ${DateFormat('dd/MM/yyyy').format(date)} 😕\nEssayez une autre date :',
+        _Input.date,
+      );
+    } else {
+      await _botSay(
+        '${available.length} créneau${available.length > 1 ? 'x' : ''} disponible${available.length > 1 ? 's' : ''} — choisissez :',
+        _Input.slot,
+      );
+    }
   }
 
   Future<void> _onSlotPicked(String slot) async {
@@ -711,12 +797,13 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   // ── Slot chips ───────────────────────────────────────────────────────────────
 
   Widget _slotChips() {
+    final slots = _availableSlots.isNotEmpty ? _availableSlots : timeSlots;
     return Padding(
       padding: const EdgeInsets.fromLTRB(40, 6, 4, 14),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: timeSlots
+        children: slots
             .map((slot) => GestureDetector(
                   onTap: () => _onSlotPicked(slot),
                   child: Container(
@@ -1503,9 +1590,36 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           Icon(Icons.touch_app_outlined,
               size: 16, color: Colors.grey.shade400),
           const SizedBox(width: 8),
-          Text(
-            'Appuyez sur une option pour continuer',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          Expanded(
+            child: Text(
+              'Appuyez sur une option pour continuer',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+          ),
+          GestureDetector(
+            onTap: _reset,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.refresh_rounded,
+                      size: 13, color: Colors.red.shade400),
+                  const SizedBox(width: 4),
+                  Text('Réinitialiser',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.red.shade400,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ),
         ],
       ),

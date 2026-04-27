@@ -65,6 +65,58 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // ── Phone Auth ────────────────────────────────────────────────────────
+  Future<void> sendPhoneOtp({
+    required String phoneNumber,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(String error) onError,
+  }) async {
+    await _auth.sendPhoneOtp(
+      phoneNumber: phoneNumber,
+      onAutoVerified: (credential) async {
+        // Android auto-verification — sign in immediately
+        final result = await _auth.signInWithPhone(
+          verificationId: credential.verificationId ?? '',
+          smsCode: credential.smsCode ?? '',
+        );
+        if (result.user != null) {
+          _user = result.user;
+          await _refreshNotifCount();
+          notifyListeners();
+        }
+      },
+      onCodeSent: onCodeSent,
+      onError: onError,
+    );
+  }
+
+  Future<({String? error, bool isNew})> verifyPhoneOtp({
+    required String verificationId,
+    required String smsCode,
+    String? firstName,
+    String? lastName,
+    String? avatarEmoji,
+    int level = 1,
+  }) async {
+    try {
+      final result = await _auth.signInWithPhone(
+        verificationId: verificationId,
+        smsCode: smsCode,
+        firstName: firstName,
+        lastName: lastName,
+        avatarEmoji: avatarEmoji,
+        level: level,
+      );
+      if (result.error != null) return (error: result.error, isNew: false);
+      _user = result.user;
+      await _refreshNotifCount();
+      notifyListeners();
+      return (error: null, isNew: result.isNew);
+    } catch (e) {
+      return (error: 'Erreur: $e', isNew: false);
+    }
+  }
+
   Future<String?> loginWithFacebook() async {
     try {
       final result = await _auth.loginWithFacebook();
