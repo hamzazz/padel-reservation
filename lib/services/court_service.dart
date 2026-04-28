@@ -49,6 +49,7 @@ class CourtService {
     required double latitude,
     required double longitude,
     int maxReservationsPerSlot = 1,
+    String city = '',
     File? imageFile,
   }) async {
     final id = const Uuid().v4();
@@ -68,6 +69,7 @@ class CourtService {
       latitude: latitude,
       longitude: longitude,
       maxReservationsPerSlot: maxReservationsPerSlot,
+      city: city,
       imageUrl: imageUrl,
     );
     await _courts.doc(court.id).set(court.toMap());

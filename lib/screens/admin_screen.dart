@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/app_user.dart';
 import '../models/club.dart';
 import '../models/court.dart';
+import '../state/city_provider.dart';
 import '../services/auth_service.dart';
 import '../services/whatsapp_service.dart';
 import '../services/club_service.dart';
@@ -507,6 +508,7 @@ class _AdminScreenState extends State<AdminScreen>
     bool geocoding = false;
     String? geocodeStatus;
     int maxReservationsPerSlot = existing?.maxReservationsPerSlot ?? 1;
+    String selectedCity = (existing?.city.isNotEmpty == true) ? existing!.city : moroccanCities.first;
     File? pickedImage;
     bool saving = false;
     final formKey = GlobalKey<FormState>();
@@ -638,6 +640,18 @@ class _AdminScreenState extends State<AdminScreen>
                         prefixIcon: Icon(Icons.monetization_on_outlined)),
                     validator: (v) =>
                         (v == null || double.tryParse(v) == null) ? 'Prix invalide' : null,
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    value: selectedCity,
+                    decoration: const InputDecoration(
+                      labelText: 'Ville',
+                      prefixIcon: Icon(Icons.location_city_outlined),
+                    ),
+                    items: moroccanCities
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+                    onChanged: (v) => setS(() => selectedCity = v!),
                   ),
                   const SizedBox(height: 10),
                   // ── Adresse + bouton géocodage ──────────────────
@@ -824,6 +838,7 @@ class _AdminScreenState extends State<AdminScreen>
                           latitude: lat!,
                           longitude: lng!,
                           maxReservationsPerSlot: maxReservationsPerSlot,
+                          city: selectedCity,
                           imageFile: pickedImage,
                         );
                       } else {
@@ -837,6 +852,7 @@ class _AdminScreenState extends State<AdminScreen>
                             latitude: lat!,
                             longitude: lng!,
                             maxReservationsPerSlot: maxReservationsPerSlot,
+                            city: selectedCity,
                           ),
                           imageFile: pickedImage,
                         );

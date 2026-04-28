@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/court.dart';
 import '../models/reservation.dart';
 import '../services/reservation_service.dart';
+import '../state/city_provider.dart';
 import '../state/court_provider.dart';
 import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
@@ -27,8 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, int> _slotCounts = {};
   final _resSvc = ReservationService();
 
-  List<Court> _filtered(List<Court> all) {
-    var list = all;
+  List<Court> _filtered(List<Court> all, String city) {
+    var list = all.where((c) => c.city == city).toList();
     if (_filter == 'indoor') list = list.where((c) => c.isIndoor).toList();
     if (_filter == 'outdoor') list = list.where((c) => !c.isIndoor).toList();
 
@@ -189,7 +190,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final allCourts = context.watch<CourtProvider>().courts;
-    final courts = _filtered(allCourts);
+    final selectedCity = context.watch<CityProvider>().selectedCity;
+    final courts = _filtered(allCourts, selectedCity);
     final locale = context.watch<LocaleProvider>();
     return Scaffold(
       body: Column(
@@ -250,6 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFilterBar() {
     final locale = context.watch<LocaleProvider>();
+    final cityProv = context.watch<CityProvider>();
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -259,19 +262,57 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Row(
-              children: [
-                _chip('all', Icons.grid_view_rounded, locale.tr('allCourts')),
-                const SizedBox(width: 8),
-                _chip('indoor', Icons.home_outlined, locale.tr('indoor')),
-                const SizedBox(width: 8),
-                _chip('outdoor', Icons.wb_sunny_outlined, locale.tr('outdoor')),
-              ],
-            ),
+          // ── Sélecteur de ville ──────────────────────────────────
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: Colors.white70, size: 14),
+              const SizedBox(width: 4),
+              ...moroccanCities.map((city) {
+                final sel = city == cityProv.selectedCity;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => cityProv.selectCity(city),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: sel ? Colors.white : Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: sel ? null : Border.all(color: Colors.white30),
+                      ),
+                      child: Text(
+                        city,
+                        style: TextStyle(
+                          color: sel ? AppTheme.primary : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
           ),
+          const SizedBox(height: 8),
+          // ── Filtre type + carte ─────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    _chip('all', Icons.grid_view_rounded, locale.tr('allCourts')),
+                    const SizedBox(width: 8),
+                    _chip('indoor', Icons.home_outlined, locale.tr('indoor')),
+                    const SizedBox(width: 8),
+                    _chip('outdoor', Icons.wb_sunny_outlined, locale.tr('outdoor')),
+                  ],
+                ),
+              ),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () => Navigator.push(
@@ -296,6 +337,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+          ),
+        ],
           ),
         ],
       ),

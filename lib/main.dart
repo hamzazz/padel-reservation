@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'state/auth_provider.dart';
+import 'state/city_provider.dart';
 import 'state/court_provider.dart';
 import 'state/locale_provider.dart';
 import 'theme/app_theme.dart';
@@ -21,6 +22,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => CourtProvider()..init()),
+        ChangeNotifierProvider(create: (_) => CityProvider()..init()),
       ],
       child: const PadelApp(),
     ),

@@ -32,6 +32,7 @@ class CourtProvider extends ChangeNotifier {
     required double latitude,
     required double longitude,
     int maxReservationsPerSlot = 1,
+    String city = '',
     File? imageFile,
   }) async {
     final court = await _svc.add(
@@ -43,6 +44,7 @@ class CourtProvider extends ChangeNotifier {
       latitude: latitude,
       longitude: longitude,
       maxReservationsPerSlot: maxReservationsPerSlot,
+      city: city,
       imageFile: imageFile,
     );
     _courts.add(court);

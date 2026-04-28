@@ -11,7 +11,9 @@ import '../services/match_service.dart';
 import '../services/notification_service.dart';
 import '../services/reservation_service.dart';
 import '../state/auth_provider.dart';
+import '../state/city_provider.dart';
 import '../state/court_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_image_widget.dart';
 import 'match_detail_screen.dart';
@@ -150,27 +152,16 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
 
   // ── Entry point ─────────────────────────────────────────────────────────────
 
+  LocaleProvider get _locale => context.read<LocaleProvider>();
+
   Future<void> _start() async {
     final user = context.read<AuthProvider>().currentUser;
-    final name = user?.firstName ?? 'joueur';
+    final locale = _locale;
+    final name = user?.firstName ?? '';
     await _botSay(
-      'Bonjour $name ! 👋\nJe suis votre assistant padel. Que souhaitez-vous faire ?',
+      '${locale.tr('chatGreeting')} $name ! 👋\n${locale.tr('chatAssistant')}',
       _Input.action,
     );
-  }
-
-  // ── Action choice ────────────────────────────────────────────────────────────
-
-  Future<void> _onAction(String label) async {
-    _addUserMsg(label);
-    if (label.contains('Réserver')) {
-      await _botSay('Quel type de terrain préférez-vous ?', _Input.courtType);
-    } else {
-      await _botSay(
-        'Souhaitez-vous rejoindre un match existant ou en créer un ?',
-        _Input.matchAction,
-      );
-    }
   }
 
   // ── Booking flow ─────────────────────────────────────────────────────────────
@@ -179,27 +170,21 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     _filter = filter;
     _addUserMsg(label);
 
+    final city = context.read<CityProvider>().selectedCity;
     final allCourts = context.read<CourtProvider>().courts;
     final filtered = allCourts.where((c) {
+      if (c.city.isNotEmpty && c.city != city) return false;
       if (filter == 'indoor') return c.isIndoor;
       if (filter == 'outdoor') return !c.isIndoor;
       return true;
     }).toList();
 
     if (filtered.isEmpty) {
-      final typeName = filter == 'indoor'
-          ? 'couvert'
-          : filter == 'outdoor'
-              ? 'extérieur'
-              : '';
-      await _botSay(
-        'Désolé, il n\'y a aucun terrain $typeName disponible dans notre club 😕\nVoulez-vous choisir un autre type ?',
-        _Input.courtType,
-      );
+      await _botSay(_locale.tr('chatNoCourtType'), _Input.courtType);
       return;
     }
 
-    await _botSay('Quelle date souhaitez-vous réserver ?', _Input.date);
+    await _botSay(_locale.tr('chatDateQ'), _Input.date);
   }
 
   Future<void> _onDatePicked(DateTime date) async {
@@ -208,8 +193,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     setState(() => _isTyping = true);
     _scrollToBottom();
 
+    final city = context.read<CityProvider>().selectedCity;
     final allCourts = context.read<CourtProvider>().courts;
     final filtered = allCourts.where((c) {
+      if (c.city.isNotEmpty && c.city != city) return false;
       if (_filter == 'indoor') return c.isIndoor;
       if (_filter == 'outdoor') return !c.isIndoor;
       return true;
@@ -236,13 +223,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     });
 
     if (available.isEmpty) {
-      await _botSay(
-        'Aucun créneau disponible pour le ${DateFormat('dd/MM/yyyy').format(date)} 😕\nEssayez une autre date :',
-        _Input.date,
-      );
+      await _botSay(_locale.tr('chatNoSlot'), _Input.date);
     } else {
       await _botSay(
-        '${available.length} créneau${available.length > 1 ? 'x' : ''} disponible${available.length > 1 ? 's' : ''} — choisissez :',
+        '${available.length} ${_locale.tr('chatSlotQ')}',
         _Input.slot,
       );
     }
@@ -254,8 +238,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     setState(() => _isTyping = true);
     _scrollToBottom();
 
+    final city = context.read<CityProvider>().selectedCity;
     final allCourts = context.read<CourtProvider>().courts;
     final filtered = allCourts.where((c) {
+      if (c.city.isNotEmpty && c.city != city) return false;
       if (_filter == 'indoor') return c.isIndoor;
       if (_filter == 'outdoor') return !c.isIndoor;
       return true;
@@ -277,39 +263,26 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     });
 
     if (available.isEmpty) {
-      await _botSay(
-        'Aucun terrain disponible pour ce créneau 😕\nEssayez un autre horaire :',
-        _Input.slot,
-      );
+      await _botSay(_locale.tr('chatNoCourtForSlot'), _Input.slot);
     } else {
-      final n = available.length;
-      await _botSay(
-        '$n terrain${n > 1 ? 's' : ''} disponible${n > 1 ? 's' : ''} pour le ${DateFormat('dd/MM').format(_date)} à $slot 🎾\nTapez sur un terrain pour le sélectionner :',
-        _Input.courtSelect,
-      );
+      await _botSay(_locale.tr('chooseCourt'), _Input.courtSelect);
     }
   }
 
   Future<void> _onCourtSelected(Court court) async {
     _selectedCourt = court;
     _addUserMsg(court.name);
-    await _botSay(
-      'Combien de joueurs serez-vous ?',
-      _Input.playerCount,
-    );
+    await _botSay(_locale.tr('chatPlayersQ'), _Input.playerCount);
   }
 
   Future<void> _onPlayerCount(int count) async {
     _players = count;
-    _addUserMsg('$count joueurs');
-    await _botSay(
-      'Récapitulatif de votre réservation :',
-      _Input.confirmBooking,
-    );
+    _addUserMsg('$count ${_locale.tr('players')}');
+    await _botSay(_locale.tr('chatBookingSummary'), _Input.confirmBooking);
   }
 
   Future<void> _confirmBooking() async {
-    _addUserMsg('Confirmer la réservation');
+    _addUserMsg(_locale.tr('chatConfirmBooking'));
     setState(() => _saving = true);
 
     final auth = context.read<AuthProvider>();
@@ -343,10 +316,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     );
 
     await _botSay(
-      '🎉 Réservation confirmée !\n\n'
+      '${_locale.tr('chatBookingConfirmed')}\n\n'
       '🏟️ ${reservation.courtName}\n'
       '📅 ${DateFormat('dd/MM/yyyy').format(reservation.date)} · ${reservation.timeSlot}\n'
-      '👥 ${reservation.numberOfPlayers} joueurs\n'
+      '👥 ${reservation.numberOfPlayers} ${_locale.tr('players')}\n'
       '💰 ${reservation.totalPrice.toStringAsFixed(0)} DH',
       _Input.action,
     );
@@ -354,38 +327,26 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
 
   // ── Match flow ───────────────────────────────────────────────────────────────
 
-  Future<void> _onMatchAction(String label) async {
-    _addUserMsg(label);
-    if (label.contains('Rejoindre')) {
-      await _botSay('Quel niveau recherchez-vous ?', _Input.matchJoinLevel);
-    } else {
-      setState(() => _isTyping = true);
-      _scrollToBottom();
-      final auth = context.read<AuthProvider>();
-      final userId = auth.currentUser?.id ?? '';
-      final all = await _resSvc.getForUser(userId);
-      final now = DateTime.now();
-      final future = all
-          .where((r) =>
-              r.date.isAfter(now.subtract(const Duration(hours: 2))))
-          .toList();
-      if (!mounted) return;
-      setState(() {
-        _isTyping = false;
-        _userReservations = future;
-      });
+  Future<void> _onMatchCreate() async {
+    setState(() => _isTyping = true);
+    _scrollToBottom();
+    final auth = context.read<AuthProvider>();
+    final userId = auth.currentUser?.id ?? '';
+    final all = await _resSvc.getForUser(userId);
+    final now = DateTime.now();
+    final future = all
+        .where((r) => r.date.isAfter(now.subtract(const Duration(hours: 2))))
+        .toList();
+    if (!mounted) return;
+    setState(() {
+      _isTyping = false;
+      _userReservations = future;
+    });
 
-      if (future.isEmpty) {
-        await _botSay(
-          'Vous n\'avez pas de réservation à venir 😕\nRéservez d\'abord un terrain pour créer un match.',
-          _Input.action,
-        );
-      } else {
-        await _botSay(
-          'Sur quelle réservation souhaitez-vous créer un match ?',
-          _Input.reservationSelect,
-        );
-      }
+    if (future.isEmpty) {
+      await _botSay(_locale.tr('chatNoFutureRes'), _Input.action);
+    } else {
+      await _botSay(_locale.tr('chatChooseRes'), _Input.reservationSelect);
     }
   }
 
@@ -395,10 +356,13 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     _scrollToBottom();
 
     final userId = context.read<AuthProvider>().currentUser?.id ?? '';
+    final selectedCity = context.read<CityProvider>().selectedCity;
     final all = await _matchSvc.getAll();
     final now = DateTime.now();
     var upcoming = all
-        .where((m) => m.date.isAfter(now.subtract(const Duration(hours: 2))))
+        .where((m) =>
+            m.date.isAfter(now.subtract(const Duration(hours: 2))) &&
+            (m.city.isEmpty || m.city == selectedCity))
         .toList();
 
     if (level > 0) {
@@ -420,14 +384,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     });
 
     if (available.isEmpty) {
-      await _botSay(
-        'Aucun match disponible${level > 0 ? ' pour ce niveau' : ''} 😕\nEssayez un autre niveau :',
-        _Input.matchJoinLevel,
-      );
+      await _botSay(_locale.tr('chatNoMatch'), _Input.matchJoinLevel);
     } else {
-      final n = available.length;
       await _botSay(
-        '$n match${n > 1 ? 's' : ''} disponible${n > 1 ? 's' : ''} 🎾\nAppuyez sur un match pour le rejoindre :',
+        '${available.length} ${_locale.tr('chatAvailableMatches')}',
         _Input.matchCards,
       );
     }
@@ -478,7 +438,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         );
       }
       await _botSay(
-        '🎉 Vous avez rejoint le match !\nVoici les détails :',
+        '${_locale.tr('joinedMatch')}\n${_locale.tr('matchDetails')} :',
         _Input.none,
       );
       await Future.delayed(const Duration(milliseconds: 400));
@@ -490,33 +450,30 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         ).then((_) => _botSay('Autre chose ? 😊', _Input.action));
       }
     } else {
-      await _botSay(
-        'Désolé, ce match est complet ou vous êtes déjà inscrit 😕\nChoisissez un autre match :',
-        _Input.matchCards,
-      );
+      await _botSay(_locale.tr('cannotJoin'), _Input.matchCards);
     }
   }
 
   Future<void> _onReservationSelected(Reservation r) async {
     _selectedReservation = r;
     _addUserMsg('${r.courtName} · ${DateFormat('dd/MM').format(r.date)} ${r.timeSlot}');
-    await _botSay('Combien de joueurs maximum pour ce match ?', _Input.matchPlayerCount);
+    await _botSay(_locale.tr('chatPlayersQ'), _Input.matchPlayerCount);
   }
 
   Future<void> _onMatchPlayerCount(int count) async {
     _maxMatchPlayers = count;
-    _addUserMsg('$count joueurs');
-    await _botSay('Quel niveau pour ce match ?', _Input.matchLevel);
+    _addUserMsg('$count ${_locale.tr('players')}');
+    await _botSay(_locale.tr('chatLevelQ'), _Input.matchLevel);
   }
 
   Future<void> _onMatchLevel(int level, String label) async {
     _matchLevel = level;
     _addUserMsg(label);
-    await _botSay('Récapitulatif du match :', _Input.confirmMatch);
+    await _botSay(_locale.tr('chatMatchSummary'), _Input.confirmMatch);
   }
 
   Future<void> _confirmMatch() async {
-    _addUserMsg('Créer le match');
+    _addUserMsg(_locale.tr('chatCreateMatch'));
     setState(() => _saving = true);
 
     final auth = context.read<AuthProvider>();
@@ -537,7 +494,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       maxPlayers: _maxMatchPlayers,
       players: [
         MatchPlayer(
-          id: userId, // use auth ID so MatchDetailScreen recognizes the organizer
+          id: userId,
           name: auth.currentUser?.fullName ?? '',
           hasPaid: false,
           joinedAt: DateTime.now(),
@@ -547,6 +504,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       status: 'open',
       createdAt: DateTime.now(),
       level: _matchLevel,
+      city: court?.city ?? context.read<CityProvider>().selectedCity,
     );
 
     await _matchSvc.save(match);
@@ -565,19 +523,62 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       phone: user?.phone,
     );
 
-    final levelLabel = _matchLevel > 0 ? levelLabels[_matchLevel] : 'Tous niveaux';
+    final levelLabel = _matchLevel > 0 ? levelLabels[_matchLevel] : _locale.tr('allLevels');
     await _botSay(
-      '🎉 Match créé avec succès !\n\n'
+      '${_locale.tr('chatMatchCreated')}\n\n'
       '🏟️ ${match.courtName}\n'
       '📅 ${DateFormat('dd/MM/yyyy').format(match.date)} · ${match.timeSlot}\n'
-      '👥 Max ${match.maxPlayers} joueurs\n'
-      '🎯 Niveau : $levelLabel\n'
-      '💰 ${match.pricePerPlayer.toStringAsFixed(0)} DH/joueur',
+      '👥 Max ${match.maxPlayers} ${_locale.tr('players')}\n'
+      '🎯 $levelLabel\n'
+      '💰 ${match.pricePerPlayer.toStringAsFixed(0)} DH',
       _Input.action,
     );
   }
 
   // ── Build ────────────────────────────────────────────────────────────────────
+
+  Widget _buildCitySelector() {
+    final cityProv = context.watch<CityProvider>();
+    return Container(
+      color: AppTheme.primaryDark,
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.location_on, color: Colors.white70, size: 14),
+          const SizedBox(width: 4),
+          ...moroccanCities.map((city) {
+            final sel = city == cityProv.selectedCity;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () {
+                  cityProv.selectCity(city);
+                  _reset();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sel ? Colors.white : Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: sel ? null : Border.all(color: Colors.white30),
+                  ),
+                  child: Text(
+                    city,
+                    style: TextStyle(
+                      color: sel ? AppTheme.primary : Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -585,6 +586,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       backgroundColor: const Color(0xFFF0F2F5),
       body: Column(
         children: [
+          _buildCitySelector(),
           Expanded(
             child: ListView.builder(
               controller: _scroll,
@@ -730,18 +732,27 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   // ── Interaction widgets ──────────────────────────────────────────────────────
 
   Widget _buildInteraction() {
+    final locale = context.read<LocaleProvider>();
     switch (_input) {
       case _Input.action:
         return _quickReplies([
-          ('🎾 Réserver un terrain', () => _onAction('Réserver un terrain')),
-          ('⚡ Rejoindre / créer un match',
-              () => _onAction('Rejoindre / créer un match')),
+          (locale.tr('chatBook'), () async {
+            _addUserMsg(locale.tr('chatBook'));
+            await _botSay(locale.tr('chatCourtTypeQ'), _Input.courtType);
+          }),
+          (locale.tr('chatMatch'), () async {
+            _addUserMsg(locale.tr('chatMatch'));
+            await _botSay(locale.tr('chatMatchOrJoin'), _Input.matchAction);
+          }),
         ]);
       case _Input.courtType:
         return _quickReplies([
-          ('🏠 Couvert', () => _onCourtType('indoor', '🏠 Couvert')),
-          ('☀️ Extérieur', () => _onCourtType('outdoor', '☀️ Extérieur')),
-          ('🎯 Peu importe', () => _onCourtType('all', '🎯 Peu importe')),
+          (locale.tr('chatCourtIndoor'),
+              () => _onCourtType('indoor', locale.tr('chatCourtIndoor'))),
+          (locale.tr('chatCourtOutdoor'),
+              () => _onCourtType('outdoor', locale.tr('chatCourtOutdoor'))),
+          (locale.tr('chatCourtAll'),
+              () => _onCourtType('all', locale.tr('chatCourtAll'))),
         ]);
       case _Input.date:
         return _dateButton();
@@ -755,8 +766,14 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         return _bookingConfirmCard();
       case _Input.matchAction:
         return _quickReplies([
-          ('👥 Rejoindre un match', () => _onMatchAction('Rejoindre un match')),
-          ('✏️ Créer un match', () => _onMatchAction('Créer un match')),
+          (locale.tr('chatJoin'), () async {
+            _addUserMsg(locale.tr('chatJoin'));
+            await _botSay(locale.tr('chatLevelQ'), _Input.matchJoinLevel);
+          }),
+          (locale.tr('chatCreate'), () async {
+            _addUserMsg(locale.tr('chatCreate'));
+            await _onMatchCreate();
+          }),
         ]);
       case _Input.matchJoinLevel:
         return _joinLevelChips();
@@ -843,7 +860,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
               const Icon(Icons.calendar_today, color: Colors.white, size: 15),
               const SizedBox(width: 8),
               Text(
-                '📅  ${DateFormat('dd/MM/yyyy').format(_date)}  →  Changer',
+                '📅  ${DateFormat('dd/MM/yyyy').format(_date)}  →  ${context.read<LocaleProvider>().tr('edit')}',
                 style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -972,7 +989,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                court.isIndoor ? 'Couvert' : 'Extérieur',
+                                court.isIndoor
+                                    ? context.read<LocaleProvider>().tr('indoor')
+                                    : context.read<LocaleProvider>().tr('outdoor'),
                                 style: TextStyle(
                                     fontSize: 9,
                                     color: court.isIndoor
@@ -990,9 +1009,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                             color: AppTheme.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Center(
-                            child: Text('Sélectionner →',
-                                style: TextStyle(
+                          child: Center(
+                            child: Text(
+                                context.read<LocaleProvider>().tr('chooseCourt'),
+                                style: const TextStyle(
                                     fontSize: 11,
                                     color: AppTheme.primary,
                                     fontWeight: FontWeight.bold)),
@@ -1041,7 +1061,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         color: AppTheme.primary,
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
-                Text('joueur${n > 1 ? 's' : ''}',
+                Text(context.read<LocaleProvider>().tr('players'),
                     style: TextStyle(
                         fontSize: 9, color: Colors.grey.shade600)),
               ],
@@ -1088,8 +1108,8 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   const Icon(Icons.receipt_long,
                       color: AppTheme.primary, size: 18),
                   const SizedBox(width: 8),
-                  const Text('Récapitulatif',
-                      style: TextStyle(
+                  Text(context.read<LocaleProvider>().tr('chatBookingSummary'),
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primary)),
                 ],
@@ -1099,12 +1119,12 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
-                  _summaryRow('🏟️', 'Terrain', court.name),
-                  _summaryRow('📅', 'Date',
+                  _summaryRow('🏟️', context.read<LocaleProvider>().tr('court'), court.name),
+                  _summaryRow('📅', context.read<LocaleProvider>().tr('date'),
                       DateFormat('dd/MM/yyyy').format(_date)),
                   if (_selectedSlot.isNotEmpty)
-                    _summaryRow('🕐', 'Créneau', _selectedSlot),
-                  _summaryRow('👥', 'Joueurs', '$_players joueurs'),
+                    _summaryRow('🕐', context.read<LocaleProvider>().tr('timeSlot'), _selectedSlot),
+                  _summaryRow('👥', context.read<LocaleProvider>().tr('numberOfPlayers'), '$_players'),
                   const Divider(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1133,13 +1153,12 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () {
-                        _addUserMsg('Annuler');
-                        _botSay(
-                            'D\'accord, pas de problème 😊\nQue souhaitez-vous faire ?',
-                            _Input.action);
+                        final l = context.read<LocaleProvider>();
+                        _addUserMsg(l.tr('cancel'));
+                        _botSay(l.tr('chatAssistant'), _Input.action);
                       },
-                      child: const Text('Annuler',
-                          style: TextStyle(color: Colors.grey)),
+                      child: Text(context.read<LocaleProvider>().tr('cancel'),
+                          style: const TextStyle(color: Colors.grey)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1151,8 +1170,8 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: _confirmBooking,
-                      child: const Text('Confirmer',
-                          style: TextStyle(color: Colors.white)),
+                      child: Text(context.read<LocaleProvider>().tr('confirm'),
+                          style: const TextStyle(color: Colors.white)),
                     ),
                   ),
                 ],
@@ -1257,7 +1276,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         color: AppTheme.primary,
                         fontSize: 22,
                         fontWeight: FontWeight.bold)),
-                Text('joueurs',
+                Text(context.read<LocaleProvider>().tr('players'),
                     style: TextStyle(
                         fontSize: 9, color: Colors.grey.shade600)),
               ],
@@ -1272,7 +1291,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
 
   Widget _levelChips() {
     final options = <(int, String)>[
-      (0, 'Tous niveaux'),
+      (0, context.read<LocaleProvider>().tr('allLevels')),
       ...List.generate(8, (i) => (i + 1, 'Niv.${i + 1} ${levelLabels[i + 1]}')),
     ];
     return Padding(
@@ -1347,8 +1366,8 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   const Icon(Icons.sports_tennis,
                       color: AppTheme.primary, size: 18),
                   const SizedBox(width: 8),
-                  const Text('Récapitulatif du match',
-                      style: TextStyle(
+                  Text(context.read<LocaleProvider>().tr('chatMatchSummary'),
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primary)),
                 ],
@@ -1358,19 +1377,18 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
-                  _summaryRow('🏟️', 'Terrain', res.courtName),
-                  _summaryRow('📅', 'Date',
+                  _summaryRow('🏟️', context.read<LocaleProvider>().tr('court'), res.courtName),
+                  _summaryRow('📅', context.read<LocaleProvider>().tr('date'),
                       DateFormat('dd/MM/yyyy').format(res.date)),
-                  _summaryRow('🕐', 'Créneau', res.timeSlot),
-                  _summaryRow(
-                      '👥', 'Joueurs max', '$_maxMatchPlayers joueurs'),
-                  _summaryRow('🎯', 'Niveau', levelLabel),
+                  _summaryRow('🕐', context.read<LocaleProvider>().tr('timeSlot'), res.timeSlot),
+                  _summaryRow('👥', context.read<LocaleProvider>().tr('numberOfPlayers'), '$_maxMatchPlayers'),
+                  _summaryRow('🎯', context.read<LocaleProvider>().tr('level'), levelLabel),
                   const Divider(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Prix / joueur',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(context.read<LocaleProvider>().tr('pricePerPlayer'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       Text('${pricePerPlayer.toStringAsFixed(0)} DH',
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
@@ -1393,13 +1411,12 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () {
-                        _addUserMsg('Annuler');
-                        _botSay(
-                            'D\'accord 😊 Que souhaitez-vous faire ?',
-                            _Input.action);
+                        final l = context.read<LocaleProvider>();
+                        _addUserMsg(l.tr('cancel'));
+                        _botSay(l.tr('chatAssistant'), _Input.action);
                       },
-                      child: const Text('Annuler',
-                          style: TextStyle(color: Colors.grey)),
+                      child: Text(context.read<LocaleProvider>().tr('cancel'),
+                          style: const TextStyle(color: Colors.grey)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1411,8 +1428,8 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: _confirmMatch,
-                      child: const Text('Créer le match',
-                          style: TextStyle(color: Colors.white)),
+                      child: Text(context.read<LocaleProvider>().tr('chatCreateMatch'),
+                          style: const TextStyle(color: Colors.white)),
                     ),
                   ),
                 ],
@@ -1428,7 +1445,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
 
   Widget _joinLevelChips() {
     final options = <(int, String)>[
-      (0, 'Tous niveaux'),
+      (0, context.read<LocaleProvider>().tr('allLevels')),
       ...List.generate(8, (i) => (i + 1, 'Niv.${i + 1} ${levelLabels[i + 1]}')),
     ];
     return Padding(
@@ -1473,7 +1490,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         children: _availableMatches.map((match) {
           final spotsLeft = match.availableSpots;
           final levelLabel =
-              match.level > 0 ? levelLabels[match.level] : 'Tous niveaux';
+              match.level > 0 ? levelLabels[match.level] : context.read<LocaleProvider>().tr('allLevels');
 
           return Container(
             margin: const EdgeInsets.only(bottom: 10),
@@ -1522,7 +1539,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          '$spotsLeft place${spotsLeft > 1 ? 's' : ''} libre${spotsLeft > 1 ? 's' : ''}',
+                          '$spotsLeft ${context.read<LocaleProvider>().tr('freeSpots')}',
                           style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -1580,8 +1597,8 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                 color: AppTheme.primary,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Text('Rejoindre',
-                                  style: TextStyle(
+                              child: Text(context.read<LocaleProvider>().tr('joinMatch'),
+                                  style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12)),
@@ -1654,7 +1671,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Appuyez sur une option pour continuer',
+              context.read<LocaleProvider>().tr('chatHint'),
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
           ),
@@ -1674,7 +1691,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   Icon(Icons.refresh_rounded,
                       size: 13, color: Colors.red.shade400),
                   const SizedBox(width: 4),
-                  Text('Réinitialiser',
+                  Text(context.read<LocaleProvider>().tr('chatReset'),
                       style: TextStyle(
                           fontSize: 11,
                           color: Colors.red.shade400,

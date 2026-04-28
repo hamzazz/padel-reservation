@@ -67,7 +67,7 @@ class _MainScreenState extends State<MainScreen> {
           _navBtn(Icons.sports_tennis_outlined, Icons.sports_tennis,
               locale.tr('matches'), 1),
           _navBtn(Icons.event_note_outlined, Icons.event_note,
-              'Réservations', 2),
+              locale.tr('reservations'), 2),
           const Expanded(child: SizedBox()), // FAB notch
           _navBtn(Icons.emoji_events_outlined, Icons.emoji_events,
               locale.tr('tournaments'), 3),
@@ -141,7 +141,7 @@ class _MainScreenState extends State<MainScreen> {
                         letterSpacing: 0.3)),
                 if (auth.currentUser != null)
                   Text(
-                      '${locale.locale == 'ar' ? 'مرحباً' : locale.locale == 'en' ? 'Hello' : 'Bonjour'}, ${auth.currentUser!.firstName} 👋',
+                      '${locale.tr('chatGreeting')}, ${auth.currentUser!.firstName} 👋',
                       style: const TextStyle(fontSize: 11, color: Colors.white70)),
               ],
             ),

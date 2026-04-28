@@ -7,6 +7,7 @@ import '../models/reservation.dart';
 import '../services/reservation_service.dart';
 import '../state/auth_provider.dart';
 import '../state/court_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_image_widget.dart';
 import 'booking_screen.dart';
@@ -48,33 +49,35 @@ class _ReservationsScreenState extends State<ReservationsScreen>
   Future<void> _delete(Reservation r) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Annuler la réservation ?'),
-        content: Text(
-            'Voulez-vous annuler le ${r.courtName} du ${DateFormat('dd/MM/yyyy').format(r.date)} à ${r.timeSlot} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Non'),
-          ),
-          ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Annuler la réservation'),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        final l = ctx.read<LocaleProvider>();
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(l.tr('cancelReservation')),
+          content: Text('${l.tr('cancelReservationConfirm')}\n${r.courtName} · ${DateFormat('dd/MM/yyyy').format(r.date)} ${r.timeSlot}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.tr('no')),
+            ),
+            ElevatedButton(
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.tr('cancelReservation')),
+            ),
+          ],
+        );
+      },
     );
     if (confirm == true) {
       await _service.delete(r.id);
       _refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Réservation annulée'),
+          SnackBar(
+              content: Text(context.read<LocaleProvider>().tr('reservationCancelled')),
               backgroundColor: Colors.red),
         );
       }
@@ -132,9 +135,9 @@ class _ReservationsScreenState extends State<ReservationsScreen>
                       style: TextStyle(fontSize: 18)),
                 ),
                 const SizedBox(width: 10),
-                const Text(
-                  'Réservations',
-                  style: TextStyle(
+                Text(
+                  context.read<LocaleProvider>().tr('reservations'),
+                  style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold),
@@ -150,9 +153,9 @@ class _ReservationsScreenState extends State<ReservationsScreen>
             indicatorColor: AppTheme.accent,
             indicatorWeight: 3,
             dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(text: 'Terrains'),
-              Tab(text: 'Mes Réservations'),
+            tabs: [
+              Tab(text: context.read<LocaleProvider>().tr('allCourts')),
+              Tab(text: context.read<LocaleProvider>().tr('myReservations')),
             ],
           ),
         ],
@@ -263,8 +266,8 @@ class _CourtsTabState extends State<_CourtsTab>
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text('Choisir un créneau',
-                      style: TextStyle(
+                  Text(context.read<LocaleProvider>().tr('chooseSlot'),
+                      style: const TextStyle(
                           fontSize: 17, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                 ],

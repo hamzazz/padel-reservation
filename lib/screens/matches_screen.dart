@@ -86,11 +86,12 @@ class _MatchesScreenState extends State<MatchesScreen>
                     m.players.any((p) => p.name.toLowerCase() == myName)
                 ).toList();
 
+                final locale = context.read<LocaleProvider>();
                 return TabBarView(
                   controller: _tabController,
                   children: [
-                    _matchList(upcoming, 'Aucun match disponible\nCréez le premier !'),
-                    _matchList(mine, 'Vous n\'avez aucun match\nRejoignez ou créez-en un !'),
+                    _matchList(upcoming, locale.tr('noMatchAvailable')),
+                    _matchList(mine, locale.tr('noMyMatch')),
                   ],
                 );
               },

@@ -52,6 +52,7 @@ class Match {
   final String status;
   final DateTime createdAt;
   final int level;
+  final String city;
 
   Match({
     required this.id,
@@ -67,6 +68,7 @@ class Match {
     required this.status,
     required this.createdAt,
     this.level = 0,
+    this.city = '',
   });
 
   bool get isFull => players.length >= maxPlayers;
@@ -87,6 +89,7 @@ class Match {
         status: status ?? this.status,
         createdAt: createdAt,
         level: level,
+        city: city,
       );
 
   Map<String, dynamic> toMap() => {
@@ -103,6 +106,7 @@ class Match {
         'status': status,
         'createdAt': createdAt.toIso8601String(),
         'level': level,
+        'city': city,
       };
 
   factory Match.fromMap(Map<String, dynamic> map) => Match(
@@ -121,5 +125,6 @@ class Match {
         status: map['status'],
         createdAt: DateTime.parse(map['createdAt']),
         level: (map['level'] as int?) ?? 0,
+        city: map['city'] as String? ?? '',
       );
 }
