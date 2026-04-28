@@ -1,5 +1,7 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/app_user.dart';
@@ -505,7 +507,10 @@ class _AdminScreenState extends State<AdminScreen>
     bool geocoding = false;
     String? geocodeStatus;
     int maxReservationsPerSlot = existing?.maxReservationsPerSlot ?? 1;
+    File? pickedImage;
+    bool saving = false;
     final formKey = GlobalKey<FormState>();
+    final picker = ImagePicker();
 
     await showModalBottomSheet(
       context: context,
@@ -535,6 +540,85 @@ class _AdminScreenState extends State<AdminScreen>
                   Text(existing == null ? 'Ajouter un terrain' : 'Modifier le terrain',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
+
+                  // ── Photo du terrain ───────────────────────────────
+                  GestureDetector(
+                    onTap: () async {
+                      final source = await showModalBottomSheet<ImageSource>(
+                        context: ctx,
+                        builder: (_) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.camera_alt),
+                                title: const Text('Prendre une photo'),
+                                onTap: () => Navigator.pop(_, ImageSource.camera),
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.photo_library),
+                                title: const Text('Choisir depuis la galerie'),
+                                onTap: () => Navigator.pop(_, ImageSource.gallery),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                      if (source == null) return;
+                      final xfile = await picker.pickImage(
+                        source: source,
+                        imageQuality: 80,
+                        maxWidth: 1200,
+                      );
+                      if (xfile != null) setS(() => pickedImage = File(xfile.path));
+                    },
+                    child: Container(
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: pickedImage != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(pickedImage!, fit: BoxFit.cover,
+                                  width: double.infinity),
+                            )
+                          : existing?.imageUrl != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image.network(existing!.imageUrl!,
+                                          fit: BoxFit.cover),
+                                      Container(
+                                        color: Colors.black.withOpacity(0.25),
+                                        child: const Center(
+                                          child: Icon(Icons.edit,
+                                              color: Colors.white, size: 32),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_photo_alternate_outlined,
+                                        size: 42, color: Colors.grey.shade400),
+                                    const SizedBox(height: 8),
+                                    Text('Photo du terrain (optionnel)',
+                                        style: TextStyle(
+                                            color: Colors.grey.shade500,
+                                            fontSize: 13)),
+                                  ],
+                                ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
                   TextFormField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: 'Nom du terrain'),
@@ -712,9 +796,14 @@ class _AdminScreenState extends State<AdminScreen>
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
-                    icon: Icon(existing == null ? Icons.add : Icons.save),
+                    icon: saving
+                        ? const SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Icon(existing == null ? Icons.add : Icons.save),
                     label: Text(existing == null ? 'Ajouter le terrain' : 'Enregistrer'),
-                    onPressed: () async {
+                    onPressed: saving ? null : () async {
                       if (!formKey.currentState!.validate()) return;
                       if (lat == null || lng == null) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -723,6 +812,7 @@ class _AdminScreenState extends State<AdminScreen>
                         ));
                         return;
                       }
+                      setS(() => saving = true);
                       final provider = context.read<CourtProvider>();
                       if (existing == null) {
                         await provider.addCourt(
@@ -734,20 +824,24 @@ class _AdminScreenState extends State<AdminScreen>
                           latitude: lat!,
                           longitude: lng!,
                           maxReservationsPerSlot: maxReservationsPerSlot,
+                          imageFile: pickedImage,
                         );
                       } else {
-                        await provider.updateCourt(existing.copyWith(
-                          name: nameCtrl.text.trim(),
-                          description: descCtrl.text.trim(),
-                          pricePerHour: double.parse(priceCtrl.text),
-                          isIndoor: isIndoor,
-                          address: addrCtrl.text.trim(),
-                          latitude: lat!,
-                          longitude: lng!,
-                          maxReservationsPerSlot: maxReservationsPerSlot,
-                        ));
+                        await provider.updateCourt(
+                          existing.copyWith(
+                            name: nameCtrl.text.trim(),
+                            description: descCtrl.text.trim(),
+                            pricePerHour: double.parse(priceCtrl.text),
+                            isIndoor: isIndoor,
+                            address: addrCtrl.text.trim(),
+                            latitude: lat!,
+                            longitude: lng!,
+                            maxReservationsPerSlot: maxReservationsPerSlot,
+                          ),
+                          imageFile: pickedImage,
+                        );
                       }
-                      if (mounted) Navigator.pop(ctx);
+                      if (ctx.mounted) Navigator.pop(ctx);
                     },
                     style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50)),

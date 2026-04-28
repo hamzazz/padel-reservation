@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/court.dart';
 import '../services/court_service.dart';
@@ -31,6 +32,7 @@ class CourtProvider extends ChangeNotifier {
     required double latitude,
     required double longitude,
     int maxReservationsPerSlot = 1,
+    File? imageFile,
   }) async {
     final court = await _svc.add(
       name: name,
@@ -41,15 +43,16 @@ class CourtProvider extends ChangeNotifier {
       latitude: latitude,
       longitude: longitude,
       maxReservationsPerSlot: maxReservationsPerSlot,
+      imageFile: imageFile,
     );
     _courts.add(court);
     notifyListeners();
   }
 
-  Future<void> updateCourt(Court court) async {
-    await _svc.update(court);
+  Future<void> updateCourt(Court court, {File? imageFile}) async {
+    final updated = await _svc.update(court, imageFile: imageFile);
     final idx = _courts.indexWhere((c) => c.id == court.id);
-    if (idx != -1) _courts[idx] = court;
+    if (idx != -1) _courts[idx] = updated;
     notifyListeners();
   }
 
