@@ -10,6 +10,7 @@ class Product {
   final String category;
   bool isSold;
   final DateTime createdAt;
+  final String? imageUrl;
 
   Product({
     required this.id,
@@ -23,6 +24,7 @@ class Product {
     required this.category,
     required this.isSold,
     required this.createdAt,
+    this.imageUrl,
   });
 
   Map<String, dynamic> toMap() => {
@@ -37,6 +39,7 @@ class Product {
         'category': category,
         'isSold': isSold,
         'createdAt': createdAt.toIso8601String(),
+        if (imageUrl != null) 'imageUrl': imageUrl,
       };
 
   factory Product.fromMap(Map<String, dynamic> m) => Product(
@@ -51,6 +54,7 @@ class Product {
         category: m['category'],
         isSold: m['isSold'] ?? false,
         createdAt: DateTime.parse(m['createdAt']),
+        imageUrl: m['imageUrl'] as String?,
       );
 }
 

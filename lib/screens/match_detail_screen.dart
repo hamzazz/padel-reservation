@@ -50,11 +50,19 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   }
 
   MatchPlayer? get _myPlayer {
-    if (_match == null || _currentPlayerName == null) return null;
+    if (_match == null) return null;
+    // Check by Firebase user ID first (covers chat joins + organizer)
+    final userId = context.read<AuthProvider>().currentUser?.id;
+    if (userId != null && userId.isNotEmpty) {
+      try {
+        return _match!.players.firstWhere((p) => p.id == userId);
+      } catch (_) {}
+    }
+    // Fallback: match by local name (legacy)
+    if (_currentPlayerName == null) return null;
     final lower = _currentPlayerName!.toLowerCase();
     try {
-      return _match!.players
-          .firstWhere((p) => p.name.toLowerCase() == lower);
+      return _match!.players.firstWhere((p) => p.name.toLowerCase() == lower);
     } catch (_) {
       return null;
     }

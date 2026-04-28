@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/app_user.dart';
 import '../models/elo_match.dart';
+import 'notification_service.dart';
 
 class EloService {
   final _db = FirebaseFirestore.instance;
@@ -155,6 +156,26 @@ class EloService {
     });
 
     await batch.commit();
+
+    // Notify all players of their new ELO
+    final notifSvc = NotificationService();
+    for (final id in match.allIds) {
+      final user = users[id];
+      if (user == null) continue;
+      final delta = eloChanges[id] ?? 0;
+      final newElo = (user.eloRating + delta).clamp(100, 3000);
+      final isWinner = (match.winnerTeam == '1' && match.team1Ids.contains(id)) ||
+          (match.winnerTeam == '2' && match.team2Ids.contains(id));
+      notifSvc.push(
+        userId: id,
+        title: isWinner ? 'Victoire ELO 🏆' : 'Résultat ELO enregistré',
+        body: isWinner
+            ? 'Bravo ! +$delta pts ELO → $newElo pts 📈'
+            : 'Match enregistré · $delta pts ELO → $newElo pts',
+        type: 'elo',
+        phone: user.phone,
+      );
+    }
   }
 
   // ── Queries ───────────────────────────────────────────────────────────────

@@ -1,4 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../services/market_service.dart';
@@ -48,7 +51,10 @@ class _MarketScreenState extends State<MarketScreen>
     final priceCtrl = TextEditingController();
     String category = productCategories.first;
     bool isNew = true;
+    File? pickedImage;
+    bool uploading = false;
     final formKey = GlobalKey<FormState>();
+    final picker = ImagePicker();
 
     await showModalBottomSheet(
       context: context,
@@ -69,18 +75,81 @@ class _MarketScreenState extends State<MarketScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2)),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2)),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text('Vendre un article',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
+
+                  // ── Image picker ──────────────────────────────────────
+                  GestureDetector(
+                    onTap: () async {
+                      final source = await showModalBottomSheet<ImageSource>(
+                        context: ctx,
+                        builder: (_) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.camera_alt),
+                                title: const Text('Prendre une photo'),
+                                onTap: () => Navigator.pop(_, ImageSource.camera),
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.photo_library),
+                                title: const Text('Choisir depuis la galerie'),
+                                onTap: () => Navigator.pop(_, ImageSource.gallery),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                      if (source == null) return;
+                      final xfile = await picker.pickImage(
+                        source: source,
+                        imageQuality: 75,
+                        maxWidth: 1080,
+                      );
+                      if (xfile != null) {
+                        setS(() => pickedImage = File(xfile.path));
+                      }
+                    },
+                    child: Container(
+                      height: 160,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: pickedImage != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(pickedImage!,
+                                  fit: BoxFit.cover, width: double.infinity),
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_photo_alternate_outlined,
+                                    size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 8),
+                                Text('Ajouter une photo',
+                                    style: TextStyle(color: Colors.grey.shade500)),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
                   TextFormField(
                     controller: titleCtrl,
                     decoration: const InputDecoration(labelText: 'Titre'),
@@ -135,24 +204,34 @@ class _MarketScreenState extends State<MarketScreen>
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () async {
-                      if (!formKey.currentState!.validate()) return;
-                      await _svc.addProduct(
-                        sellerId: user.id,
-                        sellerName: user.fullName,
-                        sellerEmoji: user.avatarEmoji,
-                        title: titleCtrl.text.trim(),
-                        description: descCtrl.text.trim(),
-                        price: double.parse(priceCtrl.text),
-                        isNew: isNew,
-                        category: category,
-                      );
-                      Navigator.pop(ctx);
-                      _load();
-                    },
+                    onPressed: uploading
+                        ? null
+                        : () async {
+                            if (!formKey.currentState!.validate()) return;
+                            setS(() => uploading = true);
+                            await _svc.addProduct(
+                              sellerId: user.id,
+                              sellerName: user.fullName,
+                              sellerEmoji: user.avatarEmoji,
+                              title: titleCtrl.text.trim(),
+                              description: descCtrl.text.trim(),
+                              price: double.parse(priceCtrl.text),
+                              isNew: isNew,
+                              category: category,
+                              imageFile: pickedImage,
+                            );
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            _load();
+                          },
                     style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 48)),
-                    child: const Text('Publier l\'annonce'),
+                    child: uploading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2,
+                                color: Colors.white))
+                        : const Text('Publier l\'annonce'),
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -285,7 +364,7 @@ class _MarketScreenState extends State<MarketScreen>
             : null,
         onDelete: isMine
             ? () async {
-                await _svc.delete(products[i].id);
+                await _svc.delete(products[i].id, imageUrl: products[i].imageUrl);
                 _load();
               }
             : null,
@@ -311,91 +390,117 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Image ──────────────────────────────────────────────────
+          if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+            SizedBox(
+              height: 200,
+              width: double.infinity,
+              child: CachedNetworkImage(
+                imageUrl: product.imageUrl!,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  color: Colors.grey.shade100,
+                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  color: Colors.grey.shade100,
+                  child: Icon(Icons.broken_image_outlined,
+                      size: 48, color: Colors.grey.shade400),
+                ),
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(product.sellerEmoji,
-                        style: const TextStyle(fontSize: 20)),
-                    const SizedBox(width: 6),
-                    Text(product.sellerName,
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.grey)),
+                    Row(
+                      children: [
+                        Text(product.sellerEmoji,
+                            style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 6),
+                        Text(product.sellerName,
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.grey)),
+                      ],
+                    ),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: product.isNew
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        product.isNew ? 'Neuf' : 'Occasion',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: product.isNew ? Colors.green : Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: product.isNew
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    product.isNew ? 'Neuf' : 'Occasion',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: product.isNew ? Colors.green : Colors.orange,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                const SizedBox(height: 8),
+                Text(product.title,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
+                if (product.description.isNotEmpty)
+                  Text(product.description,
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${product.price.toStringAsFixed(2)} DH',
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary)),
+                    if (isMine)
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: onSold,
+                            child: const Text('Marquer vendu'),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red, size: 20),
+                            onPressed: onDelete,
+                          ),
+                        ],
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(product.category,
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.grey)),
+                      ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(product.title,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
-            if (product.description.isNotEmpty)
-              Text(product.description,
-                  style:
-                      TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('${product.price.toStringAsFixed(2)} DH',
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary)),
-                if (isMine)
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: onSold,
-                        child: const Text('Marquer vendu'),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline,
-                            color: Colors.red, size: 20),
-                        onPressed: onDelete,
-                      ),
-                    ],
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(product.category,
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.grey)),
-                  ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

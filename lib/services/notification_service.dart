@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/app_notification.dart';
+import 'whatsapp_service.dart';
 
 class NotificationService {
   final _col = FirebaseFirestore.instance.collection('notifications');
@@ -33,8 +34,10 @@ class NotificationService {
     required String title,
     required String body,
     required String type,
+    String? phone, // if provided → also send WhatsApp
   }) async {
     final id = const Uuid().v4();
+    // In-app notification
     await _col.doc(id).set({
       'id': id,
       'userId': userId,
@@ -44,6 +47,11 @@ class NotificationService {
       'isRead': false,
       'createdAt': Timestamp.fromDate(DateTime.now()),
     });
+    // WhatsApp notification (fire-and-forget)
+    if (phone != null && phone.isNotEmpty) {
+      final waMsg = '🎾 *Padel Club*\n\n*$title*\n\n$body';
+      WhatsAppService.send(phone, waMsg);
+    }
   }
 
   Future<void> markAllRead(String userId) async {

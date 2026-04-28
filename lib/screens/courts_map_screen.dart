@@ -328,7 +328,7 @@ class _CourtsMapScreenState extends State<CourtsMapScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('${c.pricePerHour.toStringAsFixed(0)}DH/h',
+                    Text('${c.pricePerHour.toStringAsFixed(0)}DH',
                         style: const TextStyle(
                             color: AppTheme.primary,
                             fontWeight: FontWeight.bold,
@@ -477,7 +477,7 @@ class _CourtsMapScreenState extends State<CourtsMapScreen> {
                                   color: Colors.blue,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13)),
-                        Text('${c.pricePerHour.toStringAsFixed(0)} DH/h',
+                        Text('${c.pricePerHour.toStringAsFixed(0)} DH',
                             style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.grey.shade600)),

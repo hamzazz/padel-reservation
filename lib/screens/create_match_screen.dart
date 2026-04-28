@@ -83,7 +83,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
     if (_selectedReservation == null) return 0;
     final court = _courtFor(_selectedReservation!);
     if (court == null) return 0;
-    return court.pricePerHour * 1.5 / _maxPlayers;
+    return court.pricePerHour / _maxPlayers;
   }
 
   Future<void> _submit() async {
@@ -527,7 +527,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                     ),
                     child: Text(
                       court != null
-                          ? '${court.pricePerHour.toStringAsFixed(0)}DH/h'
+                          ? '${court.pricePerHour.toStringAsFixed(0)}DH'
                           : '',
                       style: TextStyle(
                           fontSize: 11,

@@ -109,7 +109,7 @@ class _BookingScreenState extends State<BookingScreen> {
       timeSlot: _selectedSlot!,
       playerName: _nameController.text.trim(),
       numberOfPlayers: _players,
-      totalPrice: _selectedCourt!.pricePerHour * 1.5,
+      totalPrice: _selectedCourt!.pricePerHour,
       createdAt: DateTime.now(),
     );
 
@@ -303,7 +303,7 @@ class _BookingScreenState extends State<BookingScreen> {
       items: context.read<CourtProvider>().courts
           .map((c) => DropdownMenuItem(
                 value: c,
-                child: Text('${c.name} — ${c.pricePerHour.toStringAsFixed(0)}DH/h'),
+                child: Text('${c.name} — ${c.pricePerHour.toStringAsFixed(0)}DH'),
               ))
           .toList(),
       onChanged: (v) => setState(() {
@@ -432,7 +432,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Widget _buildPriceSummary() {
     if (_selectedCourt == null) return const SizedBox.shrink();
-    final total = _selectedCourt!.pricePerHour * 1.5;
+    final total = _selectedCourt!.pricePerHour;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

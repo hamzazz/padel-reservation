@@ -1,8 +1,10 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/app_user.dart';
+import 'whatsapp_service.dart';
 
 class AuthService {
   final _auth = FirebaseAuth.instance;
@@ -233,85 +235,121 @@ class AuthService {
     await _users.doc(userId).update({'isBlockedByAdmin': false});
   }
 
-  // ── Phone Auth — send OTP ─────────────────────────────────────────────
-  Future<void> sendPhoneOtp({
-    required String phoneNumber,
-    required void Function(PhoneAuthCredential) onAutoVerified,
-    required void Function(String verificationId, int? resendToken) onCodeSent,
-    required void Function(String error) onError,
-  }) async {
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      timeout: const Duration(seconds: 60),
-      verificationCompleted: onAutoVerified,
-      verificationFailed: (e) {
-        if (e.code == 'invalid-phone-number') {
-          onError('Numéro de téléphone invalide');
-        } else if (e.code == 'too-many-requests') {
-          onError('Trop de tentatives. Réessayez plus tard.');
-        } else {
-          onError('Erreur [${e.code}]: ${e.message}');
-        }
-      },
-      codeSent: onCodeSent,
-      codeAutoRetrievalTimeout: (_) {},
-    );
+  // ── WhatsApp OTP via Meta Cloud API ──────────────────────────────────
+
+  static String _phoneKey(String phone) =>
+      phone.replaceAll(RegExp(r'[^\d]'), '');
+
+  Future<String?> sendWhatsAppOtp(String phoneNumber) async {
+    try {
+      final key = _phoneKey(phoneNumber);
+      if (key.length < 8) return 'Numéro invalide';
+
+      final code = (100000 + Random().nextInt(900000)).toString();
+      final expiresAt = DateTime.now().add(const Duration(minutes: 15));
+
+      await _db.collection('otp_requests').doc(key).set({
+        'code': code,
+        'expiresAt': Timestamp.fromDate(expiresAt),
+        'attempts': 0,
+      });
+
+      await WhatsAppService.send(
+        phoneNumber,
+        '🎾 *Padel Club*\n\nCode de vérification : *$code*\n\n⏱️ Valable 15 minutes. Ne partagez pas ce code.',
+      );
+      return null;
+    } catch (e) {
+      return 'Erreur envoi OTP : $e';
+    }
   }
 
-  // ── Phone Auth — verify OTP ───────────────────────────────────────────
-  Future<({AppUser? user, String? error, bool isNew})> signInWithPhone({
-    required String verificationId,
-    required String smsCode,
-    String? firstName,
-    String? lastName,
-    String? avatarEmoji,
-    int level = 1,
+  Future<({AppUser? user, String? error, bool isNew})> verifyWhatsAppOtp({
+    required String phoneNumber,
+    required String code,
   }) async {
     try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: smsCode,
-      );
-      final cred = await _auth.signInWithCredential(credential);
-      final uid = cred.user!.uid;
+      final key = _phoneKey(phoneNumber);
+      final docRef = _db.collection('otp_requests').doc(key);
+      final doc = await docRef.get();
 
-      AppUser? existing = await _getUserDoc(uid);
+      if (!doc.exists) {
+        return (user: null, error: 'Code expiré. Demandez un nouveau code.', isNew: false);
+      }
+
+      final data = doc.data()!;
+      final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+      final attempts = (data['attempts'] as int?) ?? 0;
+
+      if (DateTime.now().isAfter(expiresAt)) {
+        await docRef.delete();
+        return (user: null, error: 'Code expiré. Demandez un nouveau code.', isNew: false);
+      }
+
+      if (attempts >= 3) {
+        await docRef.delete();
+        return (user: null, error: 'Trop de tentatives. Demandez un nouveau code.', isNew: false);
+      }
+
+      if (data['code'] != code) {
+        await docRef.update({'attempts': attempts + 1});
+        final remaining = 2 - attempts;
+        return (user: null, error: 'Code incorrect. $remaining essai(s) restant(s).', isNew: false);
+      }
+
+      await docRef.delete();
+
+      // Sign in with Firebase using deterministic credentials from phone
+      final email = '$key@padel.club';
+      final password = 'Pdl_${key}_2024!';
+
+      UserCredential cred;
+      try {
+        cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found' ||
+            e.code == 'invalid-credential' ||
+            e.code == 'INVALID_LOGIN_CREDENTIALS') {
+          cred = await _auth.createUserWithEmailAndPassword(
+              email: email, password: password);
+        } else {
+          rethrow;
+        }
+      }
+
+      final uid = cred.user!.uid;
+      final existing = await _getUserDoc(uid);
+
       if (existing != null) {
         if (existing.isBlockedByAdmin) {
           await _auth.signOut();
-          return (user: null, error: 'Compte suspendu par un administrateur', isNew: false);
+          return (user: null, error: 'Compte suspendu par un administrateur.', isNew: false);
         }
         return (user: existing, error: null, isNew: false);
       }
 
-      // New user — create profile
-      final phone = cred.user!.phoneNumber ?? '';
-      final user = AppUser(
+      // New user — create a minimal doc now so authStateChanges finds it
+      // ProfileSetupScreen will complete the profile (name, level, avatar)
+      final newUser = AppUser(
         id: uid,
-        email: '',
-        firstName: firstName ?? 'Joueur',
-        lastName: lastName ?? '',
-        phone: phone,
-        level: level,
+        email: email,
+        firstName: '',
+        lastName: '',
+        phone: phoneNumber,
+        level: 1,
         walletBalance: 0,
-        avatarEmoji: avatarEmoji ?? '🎾',
+        avatarEmoji: '🎾',
         isAdmin: false,
         friendIds: [],
         blockedIds: [],
         createdAt: DateTime.now(),
       );
-      await _users.doc(uid).set(user.toMap());
-      return (user: user, error: null, isNew: true);
+      await _users.doc(uid).set(newUser.toMap());
+      return (user: newUser, error: null, isNew: true);
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'invalid-verification-code') {
-        return (user: null, error: 'Code incorrect. Vérifiez et réessayez.', isNew: false);
-      }
-      if (e.code == 'session-expired') {
-        return (user: null, error: 'Code expiré. Demandez un nouveau code.', isNew: false);
-      }
-      return (user: null, error: 'Erreur [${e.code}]: ${e.message}', isNew: false);
+      return (user: null, error: '[${e.code}] ${e.message ?? 'Erreur auth'}', isNew: false);
     } catch (e) {
-      return (user: null, error: 'Erreur: $e', isNew: false);
+      return (user: null, error: 'Erreur : $e', isNew: false);
     }
   }
 

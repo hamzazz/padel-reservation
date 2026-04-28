@@ -483,7 +483,7 @@ class _CourtPickerSheet extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('${court.pricePerHour.toStringAsFixed(0)}DH/h',
+                  Text('${court.pricePerHour.toStringAsFixed(0)}DH',
                       style: const TextStyle(
                           color: AppTheme.primary,
                           fontWeight: FontWeight.bold,
@@ -586,7 +586,7 @@ class _CourtCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${court.pricePerHour.toStringAsFixed(0)}DH/h',
+                            '${court.pricePerHour.toStringAsFixed(0)}DH',
                             style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

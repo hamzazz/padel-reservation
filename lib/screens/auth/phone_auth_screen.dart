@@ -53,31 +53,22 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
 
     setState(() { _loading = true; _error = null; });
 
-    String? verificationId;
+    final error = await context.read<AuthProvider>().sendPhoneOtp(fullNumber);
 
-    await context.read<AuthProvider>().sendPhoneOtp(
-      phoneNumber: fullNumber,
-      onCodeSent: (vid, _) {
-        verificationId = vid;
-      },
-      onError: (err) {
-        if (mounted) setState(() { _loading = false; _error = err; });
-      },
-    );
-
+    if (!mounted) return;
     setState(() => _loading = false);
 
-    if (verificationId != null && mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => _OtpScreen(
-            phoneNumber: fullNumber,
-            verificationId: verificationId!,
-          ),
-        ),
-      );
+    if (error != null) {
+      setState(() => _error = error);
+      return;
     }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _OtpScreen(phoneNumber: fullNumber),
+      ),
+    );
   }
 
   void _showCountryPicker() {
@@ -157,7 +148,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Vous recevrez un code de vérification à 6 chiffres par\nWhatsApp ou SMS.',
+              'Vous recevrez un code à 6 chiffres par WhatsApp.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             ),
@@ -293,7 +284,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Le code sera envoyé via WhatsApp ou SMS selon la disponibilité dans votre pays.',
+                    'Le code sera envoyé sur votre WhatsApp.',
                     style: TextStyle(
                         color: Colors.grey.shade500, fontSize: 12),
                     textAlign: TextAlign.center,
@@ -312,11 +303,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
 
 class _OtpScreen extends StatefulWidget {
   final String phoneNumber;
-  final String verificationId;
-  const _OtpScreen({
-    required this.phoneNumber,
-    required this.verificationId,
-  });
+  const _OtpScreen({required this.phoneNumber});
   @override
   State<_OtpScreen> createState() => _OtpScreenState();
 }
@@ -384,35 +371,35 @@ class _OtpScreenState extends State<_OtpScreen> {
     if (_code.length != 6 || _loading) return;
     setState(() { _loading = true; _error = null; });
 
-    final result = await context.read<AuthProvider>().verifyPhoneOtp(
-      verificationId: widget.verificationId,
-      smsCode: _code,
-    );
+    try {
+      final result = await context.read<AuthProvider>().verifyPhoneOtp(
+        phoneNumber: widget.phoneNumber,
+        code: _code,
+      );
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+      if (!mounted) return;
 
-    if (result.error != null) {
-      setState(() => _error = result.error);
-      // Clear fields on error
-      for (final c in _ctrls) c.clear();
-      _foci[0].requestFocus();
-      return;
-    }
+      if (result.error != null) {
+        setState(() { _loading = false; _error = result.error; });
+        for (final c in _ctrls) c.clear();
+        _foci[0].requestFocus();
+        return;
+      }
 
-    if (result.isNew) {
-      if (mounted) {
+      setState(() => _loading = false);
+
+      if (result.isNew) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-              builder: (_) => ProfileSetupScreen(
-                    phoneNumber: widget.phoneNumber,
-                  )),
+              builder: (_) => ProfileSetupScreen(phoneNumber: widget.phoneNumber)),
         );
+      } else {
+        Navigator.of(context).popUntil((r) => r.isFirst);
       }
-    } else {
-      // Existing user — pop all routes; _RootRouter shows MainScreen
-      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _loading = false; _error = 'Erreur inattendue: $e'; });
     }
   }
 
@@ -497,7 +484,7 @@ class _OtpScreenState extends State<_OtpScreen> {
                   const Row(
                     children: [
                       Text('📲 ', style: TextStyle(fontSize: 16)),
-                      Text('WhatsApp / SMS',
+                      Text('WhatsApp',
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 13)),
                     ],

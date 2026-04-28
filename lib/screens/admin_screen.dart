@@ -1,10 +1,12 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/app_user.dart';
 import '../models/club.dart';
 import '../models/court.dart';
 import '../services/auth_service.dart';
+import '../services/whatsapp_service.dart';
 import '../services/club_service.dart';
 import '../services/geocoding_service.dart';
 import '../services/market_service.dart';
@@ -204,6 +206,8 @@ class _AdminScreenState extends State<AdminScreen>
                 Icons.block, Colors.red),
           ],
         ),
+        const SizedBox(height: 20),
+        const _WhatsAppConfigCard(),
         const SizedBox(height: 20),
         const Text('Répartition des niveaux',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -455,7 +459,7 @@ class _AdminScreenState extends State<AdminScreen>
                             style: const TextStyle(fontSize: 12),
                             overflow: TextOverflow.ellipsis),
                         Text(
-                          '${c.pricePerHour.toStringAsFixed(0)} DH/h · ${c.isIndoor ? 'Couvert' : 'Extérieur'} · max ${c.maxReservationsPerSlot}/créneau',
+                          '${c.pricePerHour.toStringAsFixed(0)} DH/créneau · ${c.isIndoor ? 'Couvert' : 'Extérieur'} · max ${c.maxReservationsPerSlot}/créneau',
                           style: TextStyle(
                               fontSize: 12,
                               color: AppTheme.primary,
@@ -546,7 +550,7 @@ class _AdminScreenState extends State<AdminScreen>
                     controller: priceCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Prix par heure (DH)',
+                        labelText: 'Prix par créneau (1h30) (DH)',
                         prefixIcon: Icon(Icons.monetization_on_outlined)),
                     validator: (v) =>
                         (v == null || double.tryParse(v) == null) ? 'Prix invalide' : null,
@@ -1303,7 +1307,7 @@ class _ClubDetailSheetState extends State<_ClubDetailSheet> {
                     onChanged: (_) => _toggleCourt(court.id),
                     title: Text(court.name),
                     subtitle: Text(
-                        '${court.pricePerHour.toStringAsFixed(0)} DH/h · ${court.isIndoor ? 'Couvert' : 'Extérieur'}',
+                        '${court.pricePerHour.toStringAsFixed(0)} DH/créneau · ${court.isIndoor ? 'Couvert' : 'Extérieur'}',
                         style: const TextStyle(fontSize: 12)),
                     activeColor: const Color(0xFF1565C0),
                     contentPadding: EdgeInsets.zero,
@@ -1509,6 +1513,198 @@ class _UserPickerDropdownState extends State<_UserPickerDropdown> {
                   ),
           ),
       ],
+    );
+  }
+}
+
+// ── WhatsApp config card ──────────────────────────────────────────────────────
+
+class _WhatsAppConfigCard extends StatefulWidget {
+  const _WhatsAppConfigCard();
+  @override
+  State<_WhatsAppConfigCard> createState() => _WhatsAppConfigCardState();
+}
+
+class _WhatsAppConfigCardState extends State<_WhatsAppConfigCard> {
+  final _instanceCtrl = TextEditingController();
+  final _tokenCtrl = TextEditingController();
+  bool _loading = true;
+  bool _saving = false;
+  bool _expanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _instanceCtrl.dispose();
+    _tokenCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('app_config')
+          .doc('whatsapp')
+          .get();
+      if (doc.exists) {
+        _instanceCtrl.text = doc.data()?['instanceId'] ?? '';
+        _tokenCtrl.text = doc.data()?['token'] ?? '';
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('app_config')
+          .doc('whatsapp')
+          .set({
+        'instanceId': _instanceCtrl.text.trim(),
+        'token': _tokenCtrl.text.trim(),
+      });
+      WhatsAppService.reset();
+    } catch (_) {}
+    if (mounted) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Config WhatsApp sauvegardée ✅'),
+          backgroundColor: Colors.green));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF25D366);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: green.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: green.withOpacity(0.07),
+                borderRadius: BorderRadius.vertical(
+                    top: const Radius.circular(14),
+                    bottom: Radius.circular(_expanded ? 0 : 14)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration:
+                        BoxDecoration(color: green, shape: BoxShape.circle),
+                    child: const Center(
+                        child: Text('📲', style: TextStyle(fontSize: 16))),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Notifications WhatsApp',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text('UltraMsg API — ultramsg.com',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded)
+            _loading
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator())
+                : Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            '1. Créez un compte sur ultramsg.com\n'
+                            '2. Créez une instance et scannez le QR avec WhatsApp\n'
+                            '3. Copiez l\'Instance ID et le Token ci-dessous',
+                            style: TextStyle(fontSize: 11, height: 1.6),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _instanceCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Instance ID',
+                            hintText: 'instance12345',
+                            prefixIcon: Icon(Icons.device_hub),
+                            isDense: true,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _tokenCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Token',
+                            hintText: 'xxxxxxxxxxxxxxxx',
+                            prefixIcon: Icon(Icons.key),
+                            isDense: true,
+                          ),
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _saving ? null : _save,
+                            icon: _saving
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white))
+                                : const Icon(Icons.save),
+                            label: const Text('Enregistrer'),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: green,
+                                foregroundColor: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+        ],
+      ),
     );
   }
 }

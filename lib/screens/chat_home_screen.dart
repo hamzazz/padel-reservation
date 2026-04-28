@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import '../models/court.dart';
 import '../models/match.dart';
 import '../models/reservation.dart';
 import '../services/match_service.dart';
+import '../services/notification_service.dart';
 import '../services/reservation_service.dart';
 import '../state/auth_provider.dart';
 import '../state/court_provider.dart';
@@ -53,6 +55,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   final _scroll = ScrollController();
   final _resSvc = ReservationService();
   final _matchSvc = MatchService();
+  final _notifSvc = NotificationService();
 
   final List<_Msg> _msgs = [];
   bool _isTyping = false;
@@ -319,13 +322,25 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       timeSlot: _selectedSlot,
       playerName: auth.currentUser?.fullName ?? '',
       numberOfPlayers: _players,
-      totalPrice: _selectedCourt!.pricePerHour * 1.5,
+      totalPrice: _selectedCourt!.pricePerHour,
       createdAt: DateTime.now(),
     );
 
     await _resSvc.save(reservation);
     if (!mounted) return;
     setState(() => _saving = false);
+
+    final user = auth.currentUser;
+    _notifSvc.push(
+      userId: user?.id ?? '',
+      title: 'Réservation confirmée ✅',
+      body: '🏟️ ${reservation.courtName}\n'
+          '📅 ${DateFormat('dd/MM/yyyy').format(reservation.date)} · ${reservation.timeSlot}\n'
+          '👥 ${reservation.numberOfPlayers} joueurs · '
+          '💰 ${reservation.totalPrice.toStringAsFixed(0)} DH',
+      type: 'reservation',
+      phone: user?.phone,
+    );
 
     await _botSay(
       '🎉 Réservation confirmée !\n\n'
@@ -379,6 +394,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     setState(() => _isTyping = true);
     _scrollToBottom();
 
+    final userId = context.read<AuthProvider>().currentUser?.id ?? '';
     final all = await _matchSvc.getAll();
     final now = DateTime.now();
     var upcoming = all
@@ -389,7 +405,13 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       upcoming = upcoming.where((m) => m.level == level).toList();
     }
 
-    final available = upcoming.where((m) => !m.isFull).toList();
+    // Exclude full matches and matches the user created or already joined
+    final available = upcoming
+        .where((m) =>
+            !m.isFull &&
+            m.organizerId != userId &&
+            !m.players.any((p) => p.id == userId))
+        .toList();
 
     if (!mounted) return;
     setState(() {
@@ -428,6 +450,33 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     setState(() => _saving = false);
 
     if (success) {
+      final user = auth.currentUser;
+      // Notify the joiner
+      _notifSvc.push(
+        userId: user?.id ?? '',
+        title: 'Match rejoint ✅',
+        body: '🏟️ ${match.courtName}\n'
+            '📅 ${DateFormat('dd/MM/yyyy').format(match.date)} · ${match.timeSlot}\n'
+            '👥 ${match.players.length + 1}/${match.maxPlayers} joueurs',
+        type: 'match',
+        phone: user?.phone,
+      );
+      // Notify the organizer if different
+      if (match.organizerId.isNotEmpty && match.organizerId != (user?.id ?? '')) {
+        final orgDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(match.organizerId)
+            .get();
+        final orgPhone = orgDoc.data()?['phone'] as String? ?? '';
+        _notifSvc.push(
+          userId: match.organizerId,
+          title: 'Nouveau joueur dans votre match 🎾',
+          body: '${user?.fullName ?? 'Un joueur'} a rejoint votre match\n'
+              '🏟️ ${match.courtName} · ${match.timeSlot}',
+          type: 'match',
+          phone: orgPhone,
+        );
+      }
       await _botSay(
         '🎉 Vous avez rejoint le match !\nVoici les détails :',
         _Input.none,
@@ -474,11 +523,12 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     final res = _selectedReservation!;
     final court = context.read<CourtProvider>().findById(res.courtId);
     final pricePerPlayer =
-        (court?.pricePerHour ?? 0) * 1.5 / _maxMatchPlayers;
+        (court?.pricePerHour ?? 0) / _maxMatchPlayers;
 
+    final userId = auth.currentUser?.id ?? '';
     final match = Match(
       id: const Uuid().v4(),
-      organizerId: auth.currentUser?.id ?? '',
+      organizerId: userId,
       courtId: res.courtId,
       courtName: res.courtName,
       date: res.date,
@@ -487,7 +537,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
       maxPlayers: _maxMatchPlayers,
       players: [
         MatchPlayer(
-          id: const Uuid().v4(),
+          id: userId, // use auth ID so MatchDetailScreen recognizes the organizer
           name: auth.currentUser?.fullName ?? '',
           hasPaid: false,
           joinedAt: DateTime.now(),
@@ -502,6 +552,18 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     await _matchSvc.save(match);
     if (!mounted) return;
     setState(() => _saving = false);
+
+    // Notify the organizer
+    final user = auth.currentUser;
+    _notifSvc.push(
+      userId: userId,
+      title: 'Match créé ✅',
+      body: '🏟️ ${match.courtName}\n'
+          '📅 ${DateFormat('dd/MM/yyyy').format(match.date)} · ${match.timeSlot}\n'
+          '👥 Max ${match.maxPlayers} joueurs · ${match.pricePerPlayer.toStringAsFixed(0)} DH/joueur',
+      type: 'match',
+      phone: user?.phone,
+    );
 
     final levelLabel = _matchLevel > 0 ? levelLabels[_matchLevel] : 'Tous niveaux';
     await _botSay(
@@ -894,7 +956,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '${court.pricePerHour.toStringAsFixed(0)}DH/h',
+                              '${court.pricePerHour.toStringAsFixed(0)}DH',
                               style: const TextStyle(
                                   color: AppTheme.primary,
                                   fontWeight: FontWeight.bold,
@@ -995,7 +1057,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   Widget _bookingConfirmCard() {
     if (_selectedCourt == null) return const SizedBox.shrink();
     final court = _selectedCourt!;
-    final total = court.pricePerHour * 1.5;
+    final total = court.pricePerHour;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(40, 6, 8, 14),
@@ -1252,7 +1314,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     final res = _selectedReservation!;
     final court = context.read<CourtProvider>().findById(res.courtId);
     final pricePerPlayer =
-        (court?.pricePerHour ?? 0) * 1.5 / _maxMatchPlayers;
+        (court?.pricePerHour ?? 0) / _maxMatchPlayers;
     final levelLabel =
         _matchLevel > 0 ? levelLabels[_matchLevel] : 'Tous niveaux';
 
