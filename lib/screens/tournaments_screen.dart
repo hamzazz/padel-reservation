@@ -320,8 +320,7 @@ class _TournamentCard extends StatelessWidget {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Se retirer du tournoi'),
-        content: Text(
-            'Voulez-vous vous retirer de "${tournament.name}" ?\n${tournament.entryFee > 0 ? 'Les frais seront remboursés sur votre wallet.' : ''}'),
+        content: Text('Voulez-vous vous retirer de "${tournament.name}" ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -338,10 +337,10 @@ class _TournamentCard extends StatelessWidget {
 
     final svc = TournamentService();
     final ok = await svc.removeParticipant(tournament.id, user.id);
-    if (ok && tournament.entryFee > 0) {
-      await auth.refundWallet(
-          tournament.entryFee, 'Remboursement tournoi: ${tournament.name}');
-    }
+    // WALLET DISABLED
+    // if (ok && tournament.entryFee > 0) {
+    //   await auth.refundWallet(tournament.entryFee, 'Remboursement tournoi: ${tournament.name}');
+    // }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? 'Vous avez quitté le tournoi' : 'Erreur'),
@@ -357,17 +356,17 @@ class _TournamentCard extends StatelessWidget {
     final svc = TournamentService();
     final notif = NotificationService();
 
-    if (tournament.entryFee > 0) {
-      if (user.walletBalance < tournament.entryFee) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Solde insuffisant — rechargez votre wallet'),
-          backgroundColor: Colors.red,
-        ));
-        return;
-      }
-      await auth.debitWallet(
-          tournament.entryFee, 'Inscription tournoi: ${tournament.name}');
-    }
+    // WALLET DISABLED
+    // if (tournament.entryFee > 0) {
+    //   if (user.walletBalance < tournament.entryFee) {
+    //     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    //       content: Text('Solde insuffisant — rechargez votre wallet'),
+    //       backgroundColor: Colors.red,
+    //     ));
+    //     return;
+    //   }
+    //   await auth.debitWallet(tournament.entryFee, 'Inscription tournoi: ${tournament.name}');
+    // }
     final ok = await svc.join(tournament.id, user.id, user.fullName);
     if (ok) {
       await notif.push(

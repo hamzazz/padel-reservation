@@ -432,23 +432,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 : null,
           ),
           const SizedBox(height: 12),
-          // Wallet (own only)
-          if (isOwnProfile) ...[
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.account_balance_wallet,
-                    color: AppTheme.primary),
-                title: const Text('Wallet',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(
-                    'Solde : ${u.walletBalance.toStringAsFixed(2)} DH'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const WalletScreen())),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
+          // WALLET DISABLED
+          // if (isOwnProfile) ...[
+          //   Card(
+          //     child: ListTile(
+          //       leading: const Icon(Icons.account_balance_wallet, color: AppTheme.primary),
+          //       title: const Text('Wallet', style: TextStyle(fontWeight: FontWeight.bold)),
+          //       subtitle: Text('Solde : ${u.walletBalance.toStringAsFixed(2)} DH'),
+          //       trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+          //       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen())),
+          //     ),
+          //   ),
+          // WALLET DISABLED END
           // Actions for other users
           if (!isOwnProfile && me != null) ...[
             ElevatedButton.icon(

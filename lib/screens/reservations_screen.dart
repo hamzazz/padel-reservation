@@ -176,7 +176,7 @@ class _CourtsTab extends StatefulWidget {
 
 class _CourtsTabState extends State<_CourtsTab>
     with AutomaticKeepAliveClientMixin {
-  String _filter = 'all';
+  String _cityFilter = '';
   DateTime _slotDate = DateTime.now();
   String? _selectedSlot;
   bool _checkingSlots = false;
@@ -188,8 +188,7 @@ class _CourtsTabState extends State<_CourtsTab>
 
   List<Court> _filtered(List<Court> all) {
     var list = all;
-    if (_filter == 'indoor') list = list.where((c) => c.isIndoor).toList();
-    if (_filter == 'outdoor') list = list.where((c) => !c.isIndoor).toList();
+    if (_cityFilter.isNotEmpty) list = list.where((c) => c.city == _cityFilter).toList();
     if (_selectedSlot != null && _slotCounts.isNotEmpty) {
       list = list
           .where((c) => (_slotCounts[c.id] ?? 0) < c.maxReservationsPerSlot)
@@ -337,6 +336,12 @@ class _CourtsTabState extends State<_CourtsTab>
   Widget build(BuildContext context) {
     super.build(context);
     final allCourts = context.watch<CourtProvider>().courts;
+    final cities = allCourts
+        .map((c) => c.city)
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     final courts = _filtered(allCourts);
 
     return Stack(
@@ -344,7 +349,7 @@ class _CourtsTabState extends State<_CourtsTab>
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildFilterBar(),
+            _buildFilterBar(cities),
             _buildSlotFilterBar(),
             if (_checkingSlots)
               const LinearProgressIndicator(
@@ -424,6 +429,7 @@ class _CourtsTabState extends State<_CourtsTab>
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => _CourtPickerSheet(
+        cityFilter: _cityFilter,
         onCourtSelected: (court) {
           Navigator.pop(ctx);
           Navigator.push(
@@ -441,41 +447,43 @@ class _CourtsTabState extends State<_CourtsTab>
     );
   }
 
-  Widget _buildFilterBar() {
+  Widget _buildFilterBar(List<String> cities) {
     return Container(
       color: AppTheme.primary.withOpacity(0.06),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
           Expanded(
-            child: Row(
-              children: [
-                _chip('all', Icons.grid_view_rounded, 'Tous'),
-                const SizedBox(width: 8),
-                _chip('indoor', Icons.home_outlined, 'Couvert'),
-                const SizedBox(width: 8),
-                _chip('outdoor', Icons.wb_sunny_outlined, 'Extérieur'),
-              ],
-            ),
+            child: cities.length > 1
+                ? SizedBox(
+                    height: 30,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _cityChip('', 'Toutes'),
+                        ...cities.map((c) => _cityChip(c, c)),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const CourtsMapScreen())),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 7),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: AppTheme.primary.withOpacity(0.25)),
+                border:
+                    Border.all(color: AppTheme.primary.withOpacity(0.25)),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.map_outlined,
-                      color: AppTheme.primary, size: 15),
+                  Icon(Icons.map_outlined, color: AppTheme.primary, size: 15),
                   SizedBox(width: 5),
                   Text('Carte',
                       style: TextStyle(
@@ -487,6 +495,37 @@ class _CourtsTabState extends State<_CourtsTab>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _cityChip(String city, String label) {
+    final sel = _cityFilter == city;
+    return GestureDetector(
+      onTap: () => setState(() => _cityFilter = city),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: sel ? AppTheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.primary.withOpacity(sel ? 1 : 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (sel) ...[
+              const Icon(Icons.location_city, size: 11, color: Colors.white),
+              const SizedBox(width: 3),
+            ],
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: sel ? Colors.white : AppTheme.primary)),
+          ],
+        ),
       ),
     );
   }
@@ -586,36 +625,6 @@ class _CourtsTabState extends State<_CourtsTab>
     );
   }
 
-  Widget _chip(String value, IconData icon, String label) {
-    final sel = _filter == value;
-    return GestureDetector(
-      onTap: () => setState(() => _filter = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: sel ? AppTheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border:
-              Border.all(color: AppTheme.primary.withOpacity(sel ? 1 : 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                size: 13, color: sel ? Colors.white : AppTheme.primary),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: sel ? Colors.white : AppTheme.primary)),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ─── Tab 2 : Mes Réservations ─────────────────────────────────────────────────
@@ -915,11 +924,15 @@ class _CourtCard extends StatelessWidget {
 // ─── Court Picker Sheet ───────────────────────────────────────────────────────
 
 class _CourtPickerSheet extends StatelessWidget {
+  final String cityFilter;
   final void Function(Court) onCourtSelected;
   final VoidCallback onViewMap;
 
-  const _CourtPickerSheet(
-      {required this.onCourtSelected, required this.onViewMap});
+  const _CourtPickerSheet({
+    required this.cityFilter,
+    required this.onCourtSelected,
+    required this.onViewMap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -952,7 +965,9 @@ class _CourtPickerSheet extends StatelessWidget {
             ],
           ),
           const Divider(height: 16),
-          ...context.read<CourtProvider>().courts.map((c) => _tile(c)),
+          ...context.read<CourtProvider>().courts
+              .where((c) => cityFilter.isEmpty || c.city == cityFilter)
+              .map((c) => _tile(c)),
           const SizedBox(height: 4),
         ],
       ),

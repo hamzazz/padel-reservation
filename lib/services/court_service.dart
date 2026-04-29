@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../models/court.dart';
 
@@ -12,21 +13,41 @@ class CourtService {
       _db.collection('courts');
 
   Future<List<Court>> getAll() async {
+    // Try server first to get fresh imageUrl data; fall back to cache if offline.
     try {
-      final snap = await _courts.orderBy('name').get();
+      final snap = await _courts
+          .orderBy('name')
+          .get(const GetOptions(source: Source.server));
       return snap.docs.map((d) => Court.fromMap(d.data())).toList();
     } catch (_) {
-      return [];
+      try {
+        final snap = await _courts.orderBy('name').get();
+        return snap.docs.map((d) => Court.fromMap(d.data())).toList();
+      } catch (_) {
+        return [];
+      }
     }
   }
 
-  Future<String?> uploadImage(File imageFile, String courtId) async {
+  Future<String> uploadImage(File imageFile, String courtId) async {
     try {
+      final bytes = await imageFile.readAsBytes();
+      debugPrint('uploadImage: ${bytes.length} bytes, courtId=$courtId');
       final ref = _storage.ref('courts/$courtId.jpg');
-      await ref.putFile(imageFile, SettableMetadata(contentType: 'image/jpeg'));
-      return await ref.getDownloadURL();
-    } catch (_) {
-      return null;
+      final snapshot = await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      debugPrint('putData done: transferred=${snapshot.bytesTransferred}');
+      final url = await snapshot.ref.getDownloadURL();
+      debugPrint('getDownloadURL: $url');
+      return url;
+    } on FirebaseException catch (e) {
+      debugPrint('FirebaseException [${e.code}]: ${e.message}');
+      throw Exception('[${e.code}] ${e.message ?? e.toString()}');
+    } catch (e) {
+      debugPrint('uploadImage error: $e');
+      rethrow;
     }
   }
 
@@ -55,8 +76,14 @@ class CourtService {
     final id = const Uuid().v4();
 
     String? imageUrl;
+    String? uploadError;
     if (imageFile != null) {
-      imageUrl = await uploadImage(imageFile, id);
+      try {
+        imageUrl = await uploadImage(imageFile, id);
+      } catch (e) {
+        uploadError = e.toString();
+        debugPrint('add uploadImage error: $e');
+      }
     }
 
     final court = Court(
@@ -73,18 +100,26 @@ class CourtService {
       imageUrl: imageUrl,
     );
     await _courts.doc(court.id).set(court.toMap());
+    if (uploadError != null) throw Exception(uploadError);
     return court;
   }
 
   Future<Court> update(Court court, {File? imageFile}) async {
     String? imageUrl = court.imageUrl;
+    String? uploadError;
 
     if (imageFile != null) {
-      imageUrl = await uploadImage(imageFile, court.id);
+      try {
+        imageUrl = await uploadImage(imageFile, court.id);
+      } catch (e) {
+        uploadError = e.toString();
+        debugPrint('update uploadImage error: $e');
+      }
     }
 
     final updated = court.copyWith(imageUrl: imageUrl);
     await _courts.doc(updated.id).set(updated.toMap());
+    if (uploadError != null) throw Exception(uploadError);
     return updated;
   }
 

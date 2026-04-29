@@ -39,6 +39,15 @@ class MatchService {
     return true;
   }
 
+  Future<bool> leaveMatch(String matchId, String playerId) async {
+    final match = await getById(matchId);
+    if (match == null) return false;
+    final updatedPlayers = match.players.where((p) => p.id != playerId).toList();
+    final updated = match.copyWith(players: updatedPlayers, status: 'open');
+    await update(updated);
+    return true;
+  }
+
   Future<bool> payForMatch(String matchId, String playerId) async {
     final match = await getById(matchId);
     if (match == null) return false;

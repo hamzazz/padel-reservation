@@ -174,8 +174,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     final allCourts = context.read<CourtProvider>().courts;
     final filtered = allCourts.where((c) {
       if (c.city.isNotEmpty && c.city != city) return false;
-      if (filter == 'indoor') return c.isIndoor;
-      if (filter == 'outdoor') return !c.isIndoor;
       return true;
     }).toList();
 
@@ -197,8 +195,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     final allCourts = context.read<CourtProvider>().courts;
     final filtered = allCourts.where((c) {
       if (c.city.isNotEmpty && c.city != city) return false;
-      if (_filter == 'indoor') return c.isIndoor;
-      if (_filter == 'outdoor') return !c.isIndoor;
       return true;
     }).toList();
 
@@ -242,8 +238,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     final allCourts = context.read<CourtProvider>().courts;
     final filtered = allCourts.where((c) {
       if (c.city.isNotEmpty && c.city != city) return false;
-      if (_filter == 'indoor') return c.isIndoor;
-      if (_filter == 'outdoor') return !c.isIndoor;
       return true;
     }).toList();
 
@@ -746,14 +740,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           }),
         ]);
       case _Input.courtType:
-        return _quickReplies([
-          (locale.tr('chatCourtIndoor'),
-              () => _onCourtType('indoor', locale.tr('chatCourtIndoor'))),
-          (locale.tr('chatCourtOutdoor'),
-              () => _onCourtType('outdoor', locale.tr('chatCourtOutdoor'))),
-          (locale.tr('chatCourtAll'),
-              () => _onCourtType('all', locale.tr('chatCourtAll'))),
-        ]);
+        // Indoor/outdoor filter removed — go directly to date
+        WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _onCourtType('all', ''));
+        return const SizedBox.shrink();
       case _Input.date:
         return _dateButton();
       case _Input.slot:

@@ -31,19 +31,11 @@ class CourtImageWidget extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         height: height,
+        width: double.infinity,
         child: Stack(
-          fit: StackFit.expand,
           children: [
             // ── Image ou gradient ──────────────────────────────────
-            if (court.imageUrl != null && court.imageUrl!.isNotEmpty)
-              CachedNetworkImage(
-                imageUrl: court.imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => _gradientFallback(),
-                errorWidget: (_, __, ___) => _gradientFallback(),
-              )
-            else
-              _gradientFallback(),
+            Positioned.fill(child: _buildImage()),
 
             // ── Label en bas ───────────────────────────────────────
             if (showLabel)
@@ -88,6 +80,22 @@ class CourtImageWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildImage() {
+    final url = court.imageUrl;
+    if (url != null && url.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: height,
+        fadeInDuration: const Duration(milliseconds: 200),
+        placeholder: (_, __) => _gradientFallback(),
+        errorWidget: (_, __, ___) => _gradientFallback(),
+      );
+    }
+    return _gradientFallback();
   }
 
   Widget _gradientFallback() {

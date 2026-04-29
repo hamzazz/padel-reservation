@@ -23,7 +23,7 @@ class CourtProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addCourt({
+  Future<Court> addCourt({
     required String name,
     required String description,
     required double pricePerHour,
@@ -35,27 +35,48 @@ class CourtProvider extends ChangeNotifier {
     String city = '',
     File? imageFile,
   }) async {
-    final court = await _svc.add(
-      name: name,
-      description: description,
-      pricePerHour: pricePerHour,
-      isIndoor: isIndoor,
-      address: address,
-      latitude: latitude,
-      longitude: longitude,
-      maxReservationsPerSlot: maxReservationsPerSlot,
-      city: city,
-      imageFile: imageFile,
-    );
-    _courts.add(court);
-    notifyListeners();
+    Court? court;
+    try {
+      court = await _svc.add(
+        name: name,
+        description: description,
+        pricePerHour: pricePerHour,
+        isIndoor: isIndoor,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+        maxReservationsPerSlot: maxReservationsPerSlot,
+        city: city,
+        imageFile: imageFile,
+      );
+      _courts.add(court);
+      notifyListeners();
+      return court;
+    } catch (e) {
+      // Court was saved but image upload failed — update list then rethrow
+      if (court == null) rethrow;
+      _courts.add(court);
+      notifyListeners();
+      rethrow;
+    }
   }
 
-  Future<void> updateCourt(Court court, {File? imageFile}) async {
-    final updated = await _svc.update(court, imageFile: imageFile);
-    final idx = _courts.indexWhere((c) => c.id == court.id);
-    if (idx != -1) _courts[idx] = updated;
-    notifyListeners();
+  Future<Court> updateCourt(Court court, {File? imageFile}) async {
+    Court? updated;
+    try {
+      updated = await _svc.update(court, imageFile: imageFile);
+      final idx = _courts.indexWhere((c) => c.id == court.id);
+      if (idx != -1) _courts[idx] = updated;
+      notifyListeners();
+      return updated;
+    } catch (e) {
+      // Court was saved but image upload failed — update list then rethrow
+      if (updated == null) rethrow;
+      final idx = _courts.indexWhere((c) => c.id == court.id);
+      if (idx != -1) _courts[idx] = updated;
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> deleteCourt(String courtId) async {

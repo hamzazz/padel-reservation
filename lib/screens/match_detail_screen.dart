@@ -7,11 +7,12 @@ import '../models/match.dart';
 import '../services/auth_service.dart';
 import '../services/match_service.dart';
 import '../services/notification_service.dart';
+import '../services/whatsapp_service.dart';
 import '../services/user_preferences.dart';
 import '../state/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_painter.dart';
-import 'payment_screen.dart';
+// import 'payment_screen.dart'; // WALLET DISABLED
 
 class MatchDetailScreen extends StatefulWidget {
   final String matchId;
@@ -163,12 +164,26 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
     if (selected == null || !mounted) return;
 
+    final matchDate = _match != null
+        ? DateFormat('dd/MM/yyyy').format(_match!.date)
+        : '';
     await NotificationService().push(
       userId: selected.id,
       title: 'Invitation au match 🎾',
       body: '${me?.fullName ?? 'Quelqu\'un'} vous a invité à rejoindre un match sur ${_match?.courtName ?? 'un terrain'}. Rejoignez-le depuis l\'onglet Matches !',
       type: 'match_invite',
     );
+    if (selected.phone.isNotEmpty) {
+      await WhatsAppService.send(
+        selected.phone,
+        '🎾 *Invitation au match*\n\n'
+        '${me?.fullName ?? 'Un joueur'} vous invite à rejoindre un match :\n'
+        '📍 ${_match?.courtName ?? ''}\n'
+        '📅 $matchDate à ${_match?.timeSlot ?? ''}\n'
+        '💰 ${_match?.pricePerPlayer.toStringAsFixed(0) ?? ''}DH/joueur\n\n'
+        'Rejoignez-le depuis l\'application !',
+      );
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Invitation envoyée à ${selected.fullName} !'),
@@ -176,22 +191,54 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     ));
   }
 
-  Future<void> _pay(MatchPlayer player) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PaymentScreen(
-          amount: _match!.pricePerPlayer,
-          matchName: _match!.courtName,
-          playerName: player.name,
-        ),
+  Future<void> _leaveMatch(MatchPlayer player) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Se désister du match'),
+        content: const Text(
+            'Êtes-vous sûr de vouloir quitter ce match ? Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Se désister'),
+          ),
+        ],
       ),
     );
-    if (result == true) {
-      await _service.payForMatch(widget.matchId, player.id);
-      _reload();
-    }
+    if (confirmed != true || !mounted) return;
+    await _service.leaveMatch(widget.matchId, player.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Vous avez quitté le match'),
+      backgroundColor: Colors.orange,
+    ));
+    Navigator.pop(context);
   }
+
+  // WALLET DISABLED
+  // Future<void> _pay(MatchPlayer player) async {
+  //   final result = await Navigator.push<bool>(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (_) => PaymentScreen(
+  //         amount: _match!.pricePerPlayer,
+  //         matchName: _match!.courtName,
+  //         playerName: player.name,
+  //       ),
+  //     ),
+  //   );
+  //   if (result == true) {
+  //     await _service.payForMatch(widget.matchId, player.id);
+  //     _reload();
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -374,7 +421,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               return _playerTile(
                 player: p,
                 isOrganizer: isOrganizer,
-                onPay: (!p.hasPaid && isMe) ? () => _pay(p) : null,
+                onPay: null, // WALLET DISABLED
               );
             }),
             // Empty slots
@@ -421,70 +468,84 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       title: Text(player.name,
           style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(isOrganizer ? 'Organisateur' : 'Joueur'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: player.hasPaid
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              player.hasPaid ? '✓ Payé' : 'Non payé',
-              style: TextStyle(
-                fontSize: 12,
-                color: player.hasPaid ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          if (onPay != null) ...[
-            const SizedBox(width: 6),
-            ElevatedButton(
-              onPressed: onPay,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accent,
-                foregroundColor: Colors.black87,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              child: const Text('Payer'),
-            ),
-          ],
-        ],
-      ),
+      trailing: null,
+      // WALLET DISABLED
+      // trailing: Row(
+      //   mainAxisSize: MainAxisSize.min,
+      //   children: [
+      //     Container(
+      //       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      //       decoration: BoxDecoration(
+      //         color: player.hasPaid
+      //             ? Colors.green.withOpacity(0.1)
+      //             : Colors.red.withOpacity(0.1),
+      //         borderRadius: BorderRadius.circular(8),
+      //       ),
+      //       child: Text(
+      //         player.hasPaid ? '✓ Payé' : 'Non payé',
+      //         style: TextStyle(
+      //           fontSize: 12,
+      //           color: player.hasPaid ? Colors.green : Colors.red,
+      //           fontWeight: FontWeight.bold,
+      //         ),
+      //       ),
+      //     ),
+      //     if (onPay != null) ...[
+      //       const SizedBox(width: 6),
+      //       ElevatedButton(onPressed: onPay, child: const Text('Payer')),
+      //     ],
+      //   ],
+      // ),
     );
   }
 
   Widget? _bottomBar(Match match, MatchPlayer? myPlayer) {
-    if (_isAlreadyIn) {
-      if (myPlayer != null && !myPlayer.hasPaid) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.payment),
-              label: Text(
-                  'Payer ma part — ${match.pricePerPlayer.toStringAsFixed(2)} DH'),
-              onPressed: () => _pay(myPlayer),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accent,
-                foregroundColor: Colors.black87,
-                minimumSize: const Size(double.infinity, 52),
+    if (_isAlreadyIn && myPlayer != null) {
+      final canLeave = match.date
+          .isAfter(DateTime.now().add(const Duration(hours: 1)));
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // WALLET DISABLED
+              // if (!myPlayer.hasPaid)
+              //   ElevatedButton.icon(
+              //     icon: const Icon(Icons.payment),
+              //     label: Text('Payer ma part — ${match.pricePerPlayer.toStringAsFixed(2)} DH'),
+              //     onPressed: () => _pay(myPlayer),
+              //     style: ElevatedButton.styleFrom(
+              //       backgroundColor: AppTheme.accent,
+              //       foregroundColor: Colors.black87,
+              //       minimumSize: const Size(double.infinity, 52),
+              //     ),
+              //   ),
+              // if (!myPlayer.hasPaid) const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: Icon(Icons.exit_to_app,
+                    color: canLeave ? Colors.red : Colors.grey, size: 18),
+                label: Text(
+                  canLeave
+                      ? 'Se désister du match'
+                      : 'Désistement impossible (moins d\'1h)',
+                  style: TextStyle(
+                      color: canLeave ? Colors.red : Colors.grey,
+                      fontSize: 14),
+                ),
+                onPressed: canLeave ? () => _leaveMatch(myPlayer) : null,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                      color: canLeave
+                          ? Colors.red.withOpacity(0.6)
+                          : Colors.grey.shade300),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
               ),
-            ),
+            ],
           ),
-        );
-      }
-      return null;
+        ),
+      );
     }
 
     if (!match.isFull) {

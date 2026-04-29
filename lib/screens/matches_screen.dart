@@ -27,6 +27,7 @@ class _MatchesScreenState extends State<MatchesScreen>
   late Future<List<Match>> _future;
   String? _currentPlayerName;
   int _levelFilter = 0;
+  String _cityFilter = '';
 
   @override
   void initState() {
@@ -75,6 +76,9 @@ class _MatchesScreenState extends State<MatchesScreen>
 
                 if (_levelFilter > 0) {
                   upcoming = upcoming.where((m) => m.level == _levelFilter).toList();
+                }
+                if (_cityFilter.isNotEmpty) {
+                  upcoming = upcoming.where((m) => m.city == _cityFilter).toList();
                 }
 
                 final user = context.read<AuthProvider>().currentUser;
@@ -164,6 +168,29 @@ class _MatchesScreenState extends State<MatchesScreen>
               ],
             ),
           ),
+          // Filtre par ville
+          Builder(builder: (ctx) {
+            final courts = ctx.read<CourtProvider>().courts;
+            final cities = courts
+                .map((c) => c.city)
+                .where((c) => c.isNotEmpty)
+                .toSet()
+                .toList()
+              ..sort();
+            if (cities.length <= 1) return const SizedBox.shrink();
+            return SizedBox(
+              height: 34,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  _cityFilterChip('', 'Toutes villes'),
+                  ...cities.map((c) => _cityFilterChip(c, c)),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 4),
           // Filtre par niveau
           SizedBox(
             height: 36,
@@ -193,6 +220,38 @@ class _MatchesScreenState extends State<MatchesScreen>
             );
           }),
         ],
+      ),
+    );
+  }
+
+  Widget _cityFilterChip(String city, String label) {
+    final sel = _cityFilter == city;
+    return GestureDetector(
+      onTap: () => setState(() => _cityFilter = city),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: sel ? Colors.white : Colors.white.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: sel ? Colors.white : Colors.transparent, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (sel) ...[
+              Icon(Icons.location_city, size: 11, color: AppTheme.primary),
+              const SizedBox(width: 3),
+            ],
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: sel ? AppTheme.primary : Colors.white)),
+          ],
+        ),
       ),
     );
   }

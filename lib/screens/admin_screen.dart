@@ -183,7 +183,7 @@ class _AdminScreenState extends State<AdminScreen>
   }
 
   Widget _buildDashboard() {
-    final totalWallet = _users.fold(0.0, (sum, u) => sum + u.walletBalance);
+    // final totalWallet = _users.fold(0.0, (sum, u) => sum + u.walletBalance); // WALLET DISABLED
     final blockedCount = _users.where((u) => u.isBlockedByAdmin).length;
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -203,8 +203,9 @@ class _AdminScreenState extends State<AdminScreen>
                 Icons.emoji_events, const Color(0xFF3949AB)),
             _statCard('Annonces', '$_productsCount',
                 Icons.storefront, Colors.orange),
-            _statCard('Wallets', '${totalWallet.toStringAsFixed(0)} DH',
-                Icons.account_balance_wallet, Colors.green),
+            // WALLET DISABLED
+            // _statCard('Wallets', '${totalWallet.toStringAsFixed(0)} DH',
+            //     Icons.account_balance_wallet, Colors.green),
             _statCard('Bloqués', '$blockedCount',
                 Icons.block, Colors.red),
           ],
@@ -352,7 +353,7 @@ class _AdminScreenState extends State<AdminScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(u.email, style: const TextStyle(fontSize: 12)),
-                Text('Niv. ${u.level} | Wallet: ${u.walletBalance.toStringAsFixed(2)}DH',
+                Text('Niv. ${u.level}', // WALLET DISABLED
                     style: const TextStyle(fontSize: 11)),
               ],
             ),
@@ -828,22 +829,10 @@ class _AdminScreenState extends State<AdminScreen>
                       }
                       setS(() => saving = true);
                       final provider = context.read<CourtProvider>();
-                      if (existing == null) {
-                        await provider.addCourt(
-                          name: nameCtrl.text.trim(),
-                          description: descCtrl.text.trim(),
-                          pricePerHour: double.parse(priceCtrl.text),
-                          isIndoor: isIndoor,
-                          address: addrCtrl.text.trim(),
-                          latitude: lat!,
-                          longitude: lng!,
-                          maxReservationsPerSlot: maxReservationsPerSlot,
-                          city: selectedCity,
-                          imageFile: pickedImage,
-                        );
-                      } else {
-                        await provider.updateCourt(
-                          existing.copyWith(
+                      String? uploadErrMsg;
+                      try {
+                        if (existing == null) {
+                          await provider.addCourt(
                             name: nameCtrl.text.trim(),
                             description: descCtrl.text.trim(),
                             pricePerHour: double.parse(priceCtrl.text),
@@ -853,11 +842,39 @@ class _AdminScreenState extends State<AdminScreen>
                             longitude: lng!,
                             maxReservationsPerSlot: maxReservationsPerSlot,
                             city: selectedCity,
-                          ),
-                          imageFile: pickedImage,
-                        );
+                            imageFile: pickedImage,
+                          );
+                        } else {
+                          await provider.updateCourt(
+                            existing.copyWith(
+                              name: nameCtrl.text.trim(),
+                              description: descCtrl.text.trim(),
+                              pricePerHour: double.parse(priceCtrl.text),
+                              isIndoor: isIndoor,
+                              address: addrCtrl.text.trim(),
+                              latitude: lat!,
+                              longitude: lng!,
+                              maxReservationsPerSlot: maxReservationsPerSlot,
+                              city: selectedCity,
+                            ),
+                            imageFile: pickedImage,
+                          );
+                        }
+                      } catch (e) {
+                        uploadErrMsg = e.toString().replaceFirst('Exception: ', '');
                       }
-                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (ctx.mounted) {
+                        if (uploadErrMsg != null) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('⚠️ Photo non uploadée : $uploadErrMsg'),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 8),
+                            ),
+                          );
+                        }
+                        Navigator.pop(ctx);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50)),
@@ -1203,8 +1220,8 @@ class _UserDetailSheet extends StatelessWidget {
           // Info grid
           _infoRow(Icons.phone, 'Téléphone', user.phone.isEmpty ? 'Non renseigné' : user.phone),
           _infoRow(Icons.sports_tennis, 'Niveau', levelLabels[user.level]),
-          _infoRow(Icons.account_balance_wallet, 'Wallet',
-              '${user.walletBalance.toStringAsFixed(2)} DH'),
+          // WALLET DISABLED
+          // _infoRow(Icons.account_balance_wallet, 'Wallet', '${user.walletBalance.toStringAsFixed(2)} DH'),
           _infoRow(Icons.people, 'Amis', '${user.friendIds.length} ami(s)'),
           _infoRow(Icons.calendar_today, 'Membre depuis',
               DateFormat('dd/MM/yyyy').format(user.createdAt)),
