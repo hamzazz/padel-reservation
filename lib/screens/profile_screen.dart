@@ -36,6 +36,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       widget.viewUserId ==
           context.read<AuthProvider>().currentUser?.id;
 
+  LocaleProvider get _locale => context.read<LocaleProvider>();
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _editProfile() async {
     if (_viewUser == null) return;
     final auth = context.read<AuthProvider>();
+    final locale = context.read<LocaleProvider>();
     final firstCtrl =
         TextEditingController(text: _viewUser!.firstName);
     final lastCtrl =
@@ -103,8 +106,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Modifier le profil',
-                    style: TextStyle(
+                Text(locale.tr('editProfile'),
+                    style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 14),
                 Wrap(
@@ -136,14 +139,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Expanded(
                         child: TextField(
                             controller: firstCtrl,
-                            decoration: const InputDecoration(
-                                labelText: 'Prénom'))),
+                            decoration: InputDecoration(
+                                labelText: locale.tr('firstName')))),
                     const SizedBox(width: 10),
                     Expanded(
                         child: TextField(
                             controller: lastCtrl,
                             decoration:
-                                const InputDecoration(labelText: 'Nom'))),
+                                InputDecoration(labelText: locale.tr('lastName')))),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -151,10 +154,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     controller: phoneCtrl,
                     keyboardType: TextInputType.phone,
                     decoration:
-                        const InputDecoration(labelText: 'Téléphone')),
+                        InputDecoration(labelText: locale.tr('phone'))),
                 const SizedBox(height: 14),
-                const Text('Niveau',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(locale.tr('level'),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -200,7 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: ElevatedButton.styleFrom(
                       minimumSize:
                           const Size(double.infinity, 48)),
-                  child: const Text('Enregistrer'),
+                  child: Text(locale.tr('save')),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -214,6 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    context.watch<LocaleProvider>();
     final me = auth.currentUser;
 
     if (_loading) {
@@ -221,8 +225,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           body: Center(child: CircularProgressIndicator()));
     }
     if (_viewUser == null && me == null) {
-      return const Scaffold(
-          body: Center(child: Text('Joueur introuvable')));
+      return Scaffold(
+          body: Center(child: Text(_locale.tr('playerNotFound'))));
     }
     // Pour le profil personnel, utiliser currentUser du provider (toujours à jour)
     final u = (isOwnProfile ? me : _viewUser) ?? _viewUser!;
@@ -249,8 +253,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(u.avatarEmoji,
                       style: const TextStyle(fontSize: 20)),
                   const SizedBox(width: 8),
-                  const Text('Mon profil',
-                      style: TextStyle(
+                  Text(_locale.tr('myProfile'),
+                      style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
               )
@@ -302,13 +306,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 PopupMenuItem(
                   value: 'friend',
                   child: Text(isFriend
-                      ? 'Retirer des amis'
-                      : 'Ajouter comme ami'),
+                      ? _locale.tr('removeFriend')
+                      : _locale.tr('addFriend')),
                 ),
                 PopupMenuItem(
                   value: 'block',
                   child:
-                      Text(isBlocked ? 'Débloquer' : 'Bloquer'),
+                      Text(isBlocked ? _locale.tr('unblock') : _locale.tr('block')),
                 ),
               ],
             ),
@@ -356,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _badge('Niveau ${u.level}',
+                          _badge('${_locale.tr('level')} ${u.level}',
                               AppTheme.primary, Icons.star),
                           const SizedBox(width: 10),
                           _badge(levelLabels[u.level], Colors.orange,
@@ -408,10 +412,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Card(
             child: Column(
               children: [
-                _infoTile(Icons.phone, 'Téléphone', u.phone.isEmpty ? 'Non renseigné' : u.phone),
-                _infoTile(Icons.calendar_today, 'Membre depuis',
+                _infoTile(Icons.phone, _locale.tr('phone'), u.phone.isEmpty ? _locale.tr('notProvided') : u.phone),
+                _infoTile(Icons.calendar_today, _locale.tr('memberSince'),
                     '${u.createdAt.day}/${u.createdAt.month}/${u.createdAt.year}'),
-                _infoTile(Icons.group, 'Amis', '${u.friendIds.length} ami(s)'),
+                _infoTile(Icons.group, _locale.tr('friends'), '${u.friendIds.length} ${_locale.tr('friends')}'),
               ],
             ),
           ),
@@ -449,7 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton.icon(
               icon: Icon(isFriend ? Icons.person_remove : Icons.person_add),
               label:
-                  Text(isFriend ? 'Retirer des amis' : 'Ajouter comme ami'),
+                  Text(isFriend ? _locale.tr('removeFriend') : _locale.tr('addFriend')),
               onPressed: () async {
                 if (isFriend)
                   await auth.removeFriend(u.id);
@@ -473,8 +477,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 4),
             ListTile(
               leading: const Icon(Icons.group, color: AppTheme.primary),
-              title: const Text('Mes amis',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(_locale.tr('myFriends'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
               onTap: () => Navigator.push(
                   context,
@@ -492,8 +496,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             OutlinedButton.icon(
               icon: const Icon(Icons.logout, color: Colors.red),
-              label: const Text('Se déconnecter',
-                  style: TextStyle(color: Colors.red)),
+              label: Text(_locale.tr('signOut'),
+                  style: const TextStyle(color: Colors.red)),
               onPressed: () async {
                 await auth.logout();
                 if (mounted) {
@@ -583,8 +587,8 @@ class _EloStatsCard extends StatelessWidget {
                 const Text('📊',
                     style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 6),
-                const Text('Classement ELO',
-                    style: TextStyle(
+                Text(context.watch<LocaleProvider>().tr('eloRanking'),
+                    style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 15)),
                 const Spacer(),
                 if (pendingCount > 0)
@@ -622,8 +626,8 @@ class _EloStatsCard extends StatelessWidget {
             // Recent ELO history
             if (recentMatches.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text('Historique récent',
-                  style: TextStyle(
+              Text(context.read<LocaleProvider>().tr('recentHistory'),
+                  style: const TextStyle(
                       fontWeight: FontWeight.w600, fontSize: 12)),
               const SizedBox(height: 8),
               ...recentMatches.map((m) {
@@ -696,7 +700,7 @@ class _EloStatsCard extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.add_circle_outline, size: 16),
-                  label: const Text('Déclarer un résultat de match'),
+                  label: Text(context.read<LocaleProvider>().tr('declareResult')),
                   onPressed: onDeclare,
                   style: OutlinedButton.styleFrom(
                     side:
@@ -830,8 +834,8 @@ class _ReviewSectionState extends State<_ReviewSection> {
 
   Future<void> _submit() async {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Sélectionnez une note')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.read<LocaleProvider>().tr('selectRating'))));
       return;
     }
     setState(() => _submitting = true);
@@ -849,8 +853,8 @@ class _ReviewSectionState extends State<_ReviewSection> {
       _commentCtrl.clear();
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Avis envoyé !'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.read<LocaleProvider>().tr('reviewSent')),
           backgroundColor: Colors.green));
     }
   }
@@ -864,8 +868,8 @@ class _ReviewSectionState extends State<_ReviewSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Laisser un avis',
-                style: TextStyle(
+            Text(context.watch<LocaleProvider>().tr('leaveReview'),
+                style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 10),
             Row(
@@ -885,8 +889,8 @@ class _ReviewSectionState extends State<_ReviewSection> {
             TextField(
               controller: _commentCtrl,
               maxLines: 2,
-              decoration: const InputDecoration(
-                hintText: 'Votre commentaire (optionnel)',
+              decoration: InputDecoration(
+                hintText: context.read<LocaleProvider>().tr('yourComment'),
               ),
             ),
             const SizedBox(height: 10),
@@ -894,7 +898,7 @@ class _ReviewSectionState extends State<_ReviewSection> {
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 42)),
-              child: const Text('Envoyer l\'avis'),
+              child: Text(context.read<LocaleProvider>().tr('submitReview')),
             ),
           ],
         ),

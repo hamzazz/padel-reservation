@@ -10,6 +10,7 @@ import '../services/notification_service.dart';
 import '../services/whatsapp_service.dart';
 import '../services/user_preferences.dart';
 import '../state/auth_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_painter.dart';
 // import 'payment_screen.dart'; // WALLET DISABLED
@@ -28,6 +29,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   Match? _match;
   String? _currentPlayerName;
   bool _loading = true;
+
+  LocaleProvider get _locale => context.read<LocaleProvider>();
 
   @override
   void initState() {
@@ -79,12 +82,12 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Rejoindre le match'),
+        title: Text(_locale.tr('joinMatchTitle')),
         content: TextField(
           controller: nameCtrl,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.person),
-            hintText: 'Votre nom',
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.person),
+            hintText: _locale.tr('yourName'),
           ),
           autofocus: true,
           textCapitalization: TextCapitalization.words,
@@ -92,11 +95,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler')),
+              child: Text(_locale.tr('cancel'))),
           ElevatedButton(
             onPressed: () =>
                 Navigator.pop(context, nameCtrl.text.trim()),
-            child: const Text('Rejoindre'),
+            child: Text(_locale.tr('joinMatch')),
           ),
         ],
       ),
@@ -118,9 +121,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok
-          ? 'Vous avez rejoint le match !'
-          : 'Impossible — match complet ou déjà inscrit'),
+      content: Text(ok ? _locale.tr('joinedMatch') : _locale.tr('cannotJoin')),
       backgroundColor: ok ? Colors.green : Colors.red,
     ));
     if (ok) _reload();
@@ -141,7 +142,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     if (!mounted) return;
     if (available.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tous les joueurs sont déjà dans ce match')));
+        SnackBar(content: Text(_locale.tr('noPlayerInMatch'))));
       return;
     }
 
@@ -196,18 +197,17 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Se désister du match'),
-        content: const Text(
-            'Êtes-vous sûr de vouloir quitter ce match ? Cette action est irréversible.'),
+        title: Text(_locale.tr('matchWithdraw')),
+        content: Text(_locale.tr('matchWithdrawConfirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(_locale.tr('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Se désister'),
+            child: Text(_locale.tr('matchWithdrawAction')),
           ),
         ],
       ),
@@ -215,8 +215,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     if (confirmed != true || !mounted) return;
     await _service.leaveMatch(widget.matchId, player.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Vous avez quitté le match'),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(_locale.tr('matchLeft')),
       backgroundColor: Colors.orange,
     ));
     Navigator.pop(context);
@@ -242,14 +242,15 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     if (_loading) {
       return const Scaffold(
           body: Center(child: CircularProgressIndicator()));
     }
     if (_match == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Match introuvable')),
-        body: const Center(child: Text('Ce match n\'existe plus.')),
+        appBar: AppBar(title: Text(_locale.tr('matchNotFound'))),
+        body: Center(child: Text(_locale.tr('matchNoLongerExists'))),
       );
     }
 
@@ -295,8 +296,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final color = match.isFull ? Colors.orange : const Color(0xFF1565C0);
     final icon = match.isFull ? Icons.lock : Icons.lock_open;
     final text = match.isFull
-        ? 'Match complet'
-        : '${match.availableSpots} place(s) disponible(s)';
+        ? _locale.tr('matchFull')
+        : '${match.availableSpots} ${_locale.tr('spotsAvailable')}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -323,19 +324,19 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Détails du match',
-                style: TextStyle(
+            Text(_locale.tr('matchDetails'),
+                style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.bold)),
             const Divider(height: 20),
-            _row(Icons.person, 'Organisateur', match.organizerName),
+            _row(Icons.person, _locale.tr('organizer'), match.organizerName),
             _row(
               Icons.calendar_today,
-              'Date',
+              _locale.tr('date'),
               DateFormat('EEEE dd MMMM yyyy', 'fr').format(match.date),
             ),
-            _row(Icons.access_time, 'Créneau', match.timeSlot),
-            _row(Icons.people, 'Max joueurs', '${match.maxPlayers}'),
-            _row(Icons.monetization_on_outlined, 'Prix / joueur',
+            _row(Icons.access_time, _locale.tr('slot'), match.timeSlot),
+            _row(Icons.people, _locale.tr('maxPlayers'), '${match.maxPlayers}'),
+            _row(Icons.monetization_on_outlined, _locale.tr('pricePerPlayer'),
                 '${match.pricePerPlayer.toStringAsFixed(2)} DH'),
           ],
         ),
@@ -371,8 +372,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Joueurs inscrits',
-                    style: TextStyle(
+                Text(_locale.tr('registeredPlayers'),
+                    style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold)),
                 Row(
                   children: [
@@ -393,14 +394,14 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             border: Border.all(
                                 color: AppTheme.primary.withOpacity(0.4)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.person_add,
+                              const Icon(Icons.person_add,
                                   color: AppTheme.primary, size: 14),
-                              SizedBox(width: 4),
-                              Text('Inviter',
-                                  style: TextStyle(
+                              const SizedBox(width: 4),
+                              Text(_locale.tr('invite'),
+                                  style: const TextStyle(
                                       fontSize: 12,
                                       color: AppTheme.primary,
                                       fontWeight: FontWeight.w600)),
@@ -435,7 +436,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   child: Icon(Icons.person_add,
                       color: Colors.grey.shade400, size: 20),
                 ),
-                title: Text('Place libre #${i + 1}',
+                title: Text('${_locale.tr('freeSpot')} #${i + 1}',
                     style: TextStyle(
                         color: Colors.grey.shade400,
                         fontStyle: FontStyle.italic)),
@@ -467,7 +468,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       ),
       title: Text(player.name,
           style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(isOrganizer ? 'Organisateur' : 'Joueur'),
+      subtitle: Text(isOrganizer ? _locale.tr('organizer') : _locale.tr('player')),
       trailing: null,
       // WALLET DISABLED
       // trailing: Row(
@@ -527,8 +528,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     color: canLeave ? Colors.red : Colors.grey, size: 18),
                 label: Text(
                   canLeave
-                      ? 'Se désister du match'
-                      : 'Désistement impossible (moins d\'1h)',
+                      ? _locale.tr('matchWithdraw')
+                      : _locale.tr('cannotWithdraw'),
                   style: TextStyle(
                       color: canLeave ? Colors.red : Colors.grey,
                       fontSize: 14),
@@ -554,7 +555,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton.icon(
             icon: const Icon(Icons.sports_tennis),
-            label: const Text('Rejoindre le match'),
+            label: Text(_locale.tr('joinMatchTitle')),
             onPressed: _joinMatch,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1565C0),
@@ -590,6 +591,7 @@ class _InviteSheetState extends State<_InviteSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     final filtered = _query.isEmpty
         ? widget.users
         : widget.users
@@ -618,10 +620,10 @@ class _InviteSheetState extends State<_InviteSheet> {
               children: [
                 const Icon(Icons.person_add, color: AppTheme.primary),
                 const SizedBox(width: 8),
-                const Text('Inviter au match',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                Text(locale.tr('inviteToMatch'),
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                 const Spacer(),
-                Text('${widget.users.length} joueur(s)',
+                Text('${widget.users.length} ${locale.tr('player')}(s)',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
               ],
             ),
@@ -632,7 +634,7 @@ class _InviteSheetState extends State<_InviteSheet> {
             child: TextField(
               controller: _searchCtrl,
               decoration: InputDecoration(
-                hintText: 'Rechercher par nom…',
+                hintText: locale.tr('searchPlayer'),
                 prefixIcon: const Icon(Icons.search, size: 20),
                 isDense: true,
                 suffixIcon: _query.isNotEmpty
@@ -650,7 +652,7 @@ class _InviteSheetState extends State<_InviteSheet> {
           const Divider(height: 12),
           Expanded(
             child: filtered.isEmpty
-                ? const Center(child: Text('Aucun joueur trouvé'))
+                ? Center(child: Text(locale.tr('noPlayerFound')))
                 : ListView.builder(
                     controller: scroll,
                     itemCount: filtered.length,
@@ -695,8 +697,8 @@ class _InviteSheetState extends State<_InviteSheet> {
                                   color: AppTheme.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Text('Ami',
-                                    style: TextStyle(
+                                child: Text(locale.tr('friend'),
+                                    style: const TextStyle(
                                         fontSize: 10,
                                         color: AppTheme.primary,
                                         fontWeight: FontWeight.bold)),
@@ -716,8 +718,8 @@ class _InviteSheetState extends State<_InviteSheet> {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: const Text('Inviter',
-                              style: TextStyle(fontSize: 13)),
+                          child: Text(locale.tr('invite'),
+                              style: const TextStyle(fontSize: 13)),
                         ),
                       );
                     },

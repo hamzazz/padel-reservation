@@ -11,6 +11,7 @@ import '../services/reservation_service.dart';
 import '../services/user_preferences.dart';
 import '../state/auth_provider.dart';
 import '../state/court_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import 'booking_screen.dart';
 
@@ -33,6 +34,8 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
   int _level = 0;
   bool _loading = false;
   bool _loadingRes = true;
+
+  LocaleProvider get _locale => context.read<LocaleProvider>();
 
   @override
   void initState() {
@@ -89,8 +92,8 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedReservation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Sélectionnez une réservation'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(_locale.tr('selectReservation')),
         backgroundColor: Colors.red,
       ));
       return;
@@ -131,8 +134,8 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
 
     if (mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Match lancé avec succès !'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(_locale.tr('matchCreatedSuccess')),
         backgroundColor: Colors.green,
       ));
     }
@@ -140,6 +143,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     return Scaffold(
       body: Column(
         children: [
@@ -150,28 +154,28 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _label('Votre nom (organisateur)'),
+                  _label(_locale.tr('organizerName')),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.person),
-                      hintText: 'Entrez votre nom',
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.person),
+                      hintText: _locale.tr('enterYourName'),
                     ),
                     validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Nom requis' : null,
+                        (v == null || v.trim().isEmpty) ? _locale.tr('nameRequired') : null,
                   ),
                   const SizedBox(height: 24),
-                  _label('Choisir une réservation'),
+                  _label(_locale.tr('chooseReservation')),
                   const SizedBox(height: 4),
-                  Text('Sélectionnez l\'une de vos réservations à venir',
+                  Text(_locale.tr('selectUpcomingReservation'),
                       style:
                           TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                   const SizedBox(height: 12),
                   _buildReservationPicker(),
                   if (_selectedReservation != null) ...[
                     const SizedBox(height: 24),
-                    _label('Nombre de joueurs'),
+                    _label(_locale.tr('numberOfPlayers')),
                     const SizedBox(height: 8),
                     Row(
                       children: [2, 4].map((n) {
@@ -200,7 +204,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                                       color: sel ? Colors.white : Colors.grey,
                                       size: 28),
                                   const SizedBox(height: 4),
-                                  Text('$n joueurs',
+                                  Text('$n ${_locale.tr("players")}',
                                       style: TextStyle(
                                         color: sel
                                             ? Colors.white
@@ -215,7 +219,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                       }).toList(),
                     ),
                     const SizedBox(height: 20),
-                    _label('Niveau du match'),
+                    _label(_locale.tr('matchLevel')),
                     const SizedBox(height: 8),
                     _buildLevelSelector(),
                     const SizedBox(height: 20),
@@ -233,8 +237,8 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Prix / joueur',
-                                  style: TextStyle(
+                              Text(_locale.tr('pricePerPlayer'),
+                                  style: const TextStyle(
                                       fontSize: 13, color: Colors.grey)),
                               Text(
                                 '${_pricePerPlayer.toStringAsFixed(2)} DH',
@@ -263,7 +267,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                                     color: Colors.white, strokeWidth: 2))
                             : const Icon(Icons.sports_tennis),
                         label: Text(
-                            _loading ? 'Création...' : 'Lancer le match'),
+                            _loading ? _locale.tr('launching') : _locale.tr('launchMatch')),
                         onPressed: _loading ? null : _submit,
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 52),
@@ -314,17 +318,17 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
             child: const Text('🎾', style: TextStyle(fontSize: 18)),
           ),
           const SizedBox(width: 10),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Créer un match',
-                  style: TextStyle(
+              Text(_locale.tr('createMatchTitle'),
+                  style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold)),
-              Text('Basé sur vos réservations',
-                  style: TextStyle(color: Colors.white70, fontSize: 11)),
+              Text(_locale.tr('basedOnReservations'),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11)),
             ],
           ),
         ],
@@ -355,14 +359,14 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
             Icon(Icons.calendar_today, color: Colors.orange.shade600, size: 36),
             const SizedBox(height: 10),
             Text(
-              'Aucune réservation à venir',
+              _locale.tr('noUpcomingReservation2'),
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.orange.shade800),
             ),
             const SizedBox(height: 4),
             Text(
-              'Réservez d\'abord un terrain pour pouvoir créer un match.',
+              _locale.tr('bookFirstToCreateMatch'),
               textAlign: TextAlign.center,
               style:
                   TextStyle(fontSize: 13, color: Colors.orange.shade700),
@@ -370,7 +374,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
             const SizedBox(height: 14),
             ElevatedButton.icon(
               icon: const Icon(Icons.add),
-              label: const Text('Réserver un terrain'),
+              label: Text(_locale.tr('bookCourt')),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const BookingScreen()),
@@ -548,7 +552,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
       children: [
         Row(
           children: [
-            _levelChip(0, 'Tous niveaux', Icons.people_outline),
+            _levelChip(0, _locale.tr('allLevels'), Icons.people_outline),
           ],
         ),
         const SizedBox(height: 6),

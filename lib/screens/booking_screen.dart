@@ -8,6 +8,7 @@ import '../models/reservation.dart';
 import '../services/reservation_service.dart';
 import '../state/auth_provider.dart';
 import '../state/court_provider.dart';
+import '../state/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/court_image_widget.dart';
 
@@ -32,6 +33,8 @@ class _BookingScreenState extends State<BookingScreen> {
   bool _checkingSlot = false;
   bool _slotTaken = false;
   int _slotCount = 0;
+
+  LocaleProvider get _locale => context.read<LocaleProvider>();
 
   @override
   void initState() {
@@ -89,11 +92,11 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSlot == null) {
-      _showSnack('Veuillez sélectionner un créneau horaire', isError: true);
+      _showSnack(_locale.tr('selectTimeSlot'), isError: true);
       return;
     }
     if (_slotTaken) {
-      _showSnack('Ce créneau est déjà réservé', isError: true);
+      _showSnack(_locale.tr('slotAlreadyBooked'), isError: true);
       return;
     }
 
@@ -146,8 +149,8 @@ class _BookingScreenState extends State<BookingScreen> {
               child: const Icon(Icons.check_circle, color: AppTheme.primary, size: 56),
             ),
             const SizedBox(height: 16),
-            const Text('Réservation confirmée !',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(_locale.tr('bookingConfirmed'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             _infoRow(Icons.sports_tennis, r.courtName),
             _infoRow(Icons.calendar_today, DateFormat('EEEE dd MMMM yyyy', 'fr').format(r.date)),
@@ -162,7 +165,7 @@ class _BookingScreenState extends State<BookingScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text('Fermer', style: TextStyle(color: AppTheme.primary)),
+            child: Text(_locale.tr('close'), style: const TextStyle(color: AppTheme.primary)),
           ),
         ],
       ),
@@ -184,8 +187,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouvelle réservation')),
+      appBar: AppBar(title: Text(_locale.tr('newBooking'))),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -198,31 +202,31 @@ class _BookingScreenState extends State<BookingScreen> {
               _buildLocationRow(_selectedCourt!),
               const SizedBox(height: 16),
             ],
-            _sectionTitle('Votre nom'),
+            _sectionTitle(_locale.tr('yourName')),
             const SizedBox(height: 8),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.person),
-                hintText: 'Entrez votre nom complet',
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.person),
+                hintText: _locale.tr('enterFullName'),
               ),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Nom requis' : null,
+                  (v == null || v.trim().isEmpty) ? _locale.tr('nameRequired') : null,
             ),
             const SizedBox(height: 20),
-            _sectionTitle('Terrain'),
+            _sectionTitle(_locale.tr('court')),
             const SizedBox(height: 8),
             _buildCourtSelector(),
             const SizedBox(height: 20),
-            _sectionTitle('Nombre de joueurs'),
+            _sectionTitle(_locale.tr('numberOfPlayers')),
             const SizedBox(height: 8),
             _buildPlayerSelector(),
             const SizedBox(height: 20),
-            _sectionTitle('Date'),
+            _sectionTitle(_locale.tr('date')),
             const SizedBox(height: 8),
             _buildDateSelector(),
             const SizedBox(height: 20),
-            _sectionTitle('Créneau horaire'),
+            _sectionTitle(_locale.tr('timeSlot')),
             const SizedBox(height: 8),
             _buildTimeSlots(),
             const SizedBox(height: 20),
@@ -238,7 +242,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
-                    : const Text('Confirmer la réservation'),
+                    : Text(_locale.tr('confirmBooking')),
               ),
             ),
             const SizedBox(height: 16),
@@ -279,12 +283,12 @@ class _BookingScreenState extends State<BookingScreen> {
               color: AppTheme.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.map_outlined, size: 13, color: AppTheme.primary),
-                SizedBox(width: 4),
-                Text('Carte',
-                    style: TextStyle(
+                const Icon(Icons.map_outlined, size: 13, color: AppTheme.primary),
+                const SizedBox(width: 4),
+                Text(_locale.tr('map'),
+                    style: const TextStyle(
                         fontSize: 11,
                         color: AppTheme.primary,
                         fontWeight: FontWeight.w600)),
@@ -324,7 +328,7 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
         Expanded(
           child: Center(
-            child: Text('$_players joueurs',
+            child: Text('$_players ${_locale.tr("players")}',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
@@ -446,7 +450,7 @@ class _BookingScreenState extends State<BookingScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Total (1h30)', style: TextStyle(fontSize: 13, color: Colors.grey)),
+              Text(_locale.tr('totalPrice'), style: const TextStyle(fontSize: 13, color: Colors.grey)),
               Text(
                 '${total.toStringAsFixed(2)} DH',
                 style: const TextStyle(

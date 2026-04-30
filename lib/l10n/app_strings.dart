@@ -307,6 +307,33 @@ const Map<String, Map<String, String>> appStrings = {
     'chatCourtOutdoor': '☀️ Extérieur',
     'chatCourtAll': '🎾 Tous les terrains',
     'chatNoCourtType': 'Désolé, aucun terrain disponible.\nVoulez-vous choisir un autre type ?',
+
+    // Match detail
+    'invite': 'Inviter',
+    'inviteToMatch': 'Inviter au match',
+    'matchWithdraw': 'Se désister du match',
+    'matchWithdrawConfirm': 'Êtes-vous sûr de vouloir quitter ce match ? Cette action est irréversible.',
+    'matchWithdrawAction': 'Se désister',
+    'matchLeft': 'Vous avez quitté le match',
+    'cannotWithdraw': 'Désistement impossible (moins d\'1h)',
+    'player': 'Joueur',
+    'noPlayerInMatch': 'Tous les joueurs sont déjà dans ce match',
+    'matchFull': 'Match complet',
+    'spotsAvailable': 'place(s) disponible(s)',
+    'slot': 'Créneau',
+    'maxPlayers': 'Max joueurs',
+    'friend': 'Ami',
+
+    // Tournaments extended
+    'createTournamentBtn': 'Créer le tournoi',
+    'registrationSuccess': 'Inscription réussie !',
+    'leftTournament': 'Vous avez quitté le tournoi',
+    'createTournamentShort': 'Créer tournoi',
+
+    // Profile extended
+    'myProfile': 'Mon profil',
+    'playerNotFound': 'Joueur introuvable',
+    'declareResult': 'Déclarer un résultat de match',
   },
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -617,6 +644,33 @@ const Map<String, Map<String, String>> appStrings = {
     'chatCourtOutdoor': '☀️ Outdoor',
     'chatCourtAll': '🎾 All courts',
     'chatNoCourtType': 'Sorry, no courts available.\nWould you like to choose another type?',
+
+    // Match detail
+    'invite': 'Invite',
+    'inviteToMatch': 'Invite to match',
+    'matchWithdraw': 'Withdraw from match',
+    'matchWithdrawConfirm': 'Are you sure you want to leave this match? This action is irreversible.',
+    'matchWithdrawAction': 'Withdraw',
+    'matchLeft': 'You left the match',
+    'cannotWithdraw': 'Cannot withdraw (less than 1h)',
+    'player': 'Player',
+    'noPlayerInMatch': 'All players are already in this match',
+    'matchFull': 'Match full',
+    'spotsAvailable': 'spot(s) available',
+    'slot': 'Slot',
+    'maxPlayers': 'Max players',
+    'friend': 'Friend',
+
+    // Tournaments extended
+    'createTournamentBtn': 'Create tournament',
+    'registrationSuccess': 'Registration successful!',
+    'leftTournament': 'You left the tournament',
+    'createTournamentShort': 'New Tournament',
+
+    // Profile extended
+    'myProfile': 'My Profile',
+    'playerNotFound': 'Player not found',
+    'declareResult': 'Declare match result',
   },
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -927,5 +981,32 @@ const Map<String, Map<String, String>> appStrings = {
     'chatCourtOutdoor': '☀️ خارجي',
     'chatCourtAll': '🎾 جميع الملاعب',
     'chatNoCourtType': 'عذراً، لا توجد ملاعب متاحة.\nهل تريد اختيار نوع آخر؟',
+
+    // Match detail
+    'invite': 'دعوة',
+    'inviteToMatch': 'دعوة للمباراة',
+    'matchWithdraw': 'الانسحاب من المباراة',
+    'matchWithdrawConfirm': 'هل أنت متأكد أنك تريد مغادرة هذه المباراة؟ هذا الإجراء لا يمكن التراجع عنه.',
+    'matchWithdrawAction': 'انسحاب',
+    'matchLeft': 'غادرت المباراة',
+    'cannotWithdraw': 'لا يمكن الانسحاب (أقل من ساعة)',
+    'player': 'لاعب',
+    'noPlayerInMatch': 'جميع اللاعبين موجودون بالفعل في هذه المباراة',
+    'matchFull': 'المباراة مكتملة',
+    'spotsAvailable': 'مكان(مكانة) متاح(ة)',
+    'slot': 'الوقت',
+    'maxPlayers': 'عدد اللاعبين',
+    'friend': 'صديق',
+
+    // Tournaments extended
+    'createTournamentBtn': 'إنشاء البطولة',
+    'registrationSuccess': 'تم التسجيل بنجاح!',
+    'leftTournament': 'غادرت البطولة',
+    'createTournamentShort': 'بطولة جديدة',
+
+    // Profile extended
+    'myProfile': 'ملفي الشخصي',
+    'playerNotFound': 'اللاعب غير موجود',
+    'declareResult': 'إعلان نتيجة مباراة',
   },
 };

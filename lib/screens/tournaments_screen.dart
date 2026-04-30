@@ -21,6 +21,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
   List<Tournament> _tournaments = [];
   bool _loading = true;
 
+  LocaleProvider get _locale => context.read<LocaleProvider>();
+
   @override
   void initState() {
     super.initState();
@@ -71,28 +73,28 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                         borderRadius: BorderRadius.circular(2)),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Créer un tournoi',
+                  Text(_locale.tr('createTournament'),
                       style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: nameCtrl,
                     decoration:
-                        const InputDecoration(labelText: 'Nom du tournoi'),
+                        InputDecoration(labelText: _locale.tr('tournamentName')),
                     validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Requis' : null,
+                        (v == null || v.isEmpty) ? _locale.tr('required') : null,
                   ),
                   const SizedBox(height: 10),
                   TextFormField(
                     controller: descCtrl,
                     maxLines: 2,
                     decoration:
-                        const InputDecoration(labelText: 'Description'),
+                        InputDecoration(labelText: _locale.tr('description')),
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<Court>(
                     value: court,
-                    decoration: const InputDecoration(labelText: 'Terrain'),
+                    decoration: InputDecoration(labelText: _locale.tr('court')),
                     items: allCourts
                         .map((c) =>
                             DropdownMenuItem(value: c, child: Text(c.name)))
@@ -103,8 +105,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   TextFormField(
                     controller: feeCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        labelText: 'Frais d\'inscription (DH)'),
+                    decoration: InputDecoration(
+                        labelText: _locale.tr('registrationFee')),
                   ),
                   const SizedBox(height: 10),
                   ListTile(
@@ -124,14 +126,14 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   ),
                   Row(
                     children: [
-                      const Text('Format : '),
+                      Text(_locale.tr('format')),
                       ChoiceChip(
-                          label: const Text('Simple'),
+                          label: Text(_locale.tr('singles')),
                           selected: format == 'single',
                           onSelected: (_) => setS(() => format = 'single')),
                       const SizedBox(width: 8),
                       ChoiceChip(
-                          label: const Text('Double'),
+                          label: Text(_locale.tr('doubles')),
                           selected: format == 'double',
                           onSelected: (_) => setS(() => format = 'double')),
                     ],
@@ -139,7 +141,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.emoji_events),
-                    label: const Text('Créer le tournoi'),
+                    label: Text(_locale.tr('createTournamentBtn')),
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
                       await _svc.create(
@@ -172,6 +174,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final isAdmin = context.read<AuthProvider>().isAdmin;
     return Scaffold(
       body: Column(
@@ -191,7 +194,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                                     color: Colors.grey.shade300)),
                             const SizedBox(height: 12),
                             Text(
-                              'Aucun tournoi\nCréez le premier !',
+                              _locale.tr('noTournament'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: Colors.grey.shade500, fontSize: 15),
@@ -217,8 +220,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
           ? FloatingActionButton.extended(
               backgroundColor: AppTheme.accent,
               icon: const Icon(Icons.emoji_events, color: Colors.black87),
-              label: const Text('Créer tournoi',
-                  style: TextStyle(
+              label: Text(_locale.tr('createTournamentShort'),
+                  style: const TextStyle(
                       color: Colors.black87, fontWeight: FontWeight.bold)),
               onPressed: _create,
             )
@@ -319,16 +322,16 @@ class _TournamentCard extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Se retirer du tournoi'),
+        title: Text(context.read<LocaleProvider>().tr('withdrawFromTournament')),
         content: Text('Voulez-vous vous retirer de "${tournament.name}" ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler')),
+              child: Text(context.read<LocaleProvider>().tr('cancel'))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Se retirer', style: TextStyle(color: Colors.white)),
+            child: Text(context.read<LocaleProvider>().tr('withdraw'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -343,7 +346,7 @@ class _TournamentCard extends StatelessWidget {
     // }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Vous avez quitté le tournoi' : 'Erreur'),
+        content: Text(ok ? context.read<LocaleProvider>().tr('leftTournament') : context.read<LocaleProvider>().tr('error')),
         backgroundColor: ok ? Colors.orange : Colors.red,
       ));
       onRefresh();
@@ -375,8 +378,8 @@ class _TournamentCard extends StatelessWidget {
         body: 'Vous participez à "${tournament.name}"',
         type: 'tournament',
       );
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Inscription réussie !'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.read<LocaleProvider>().tr('registrationSuccess')),
         backgroundColor: Colors.green,
       ));
       onRefresh();
@@ -449,7 +452,7 @@ class _TournamentCard extends StatelessWidget {
                 _chip(Icons.monetization_on_outlined,
                     '${tournament.entryFee.toStringAsFixed(0)}DH/pers.'),
                 _chip(Icons.format_list_numbered,
-                    tournament.format == 'single' ? 'Simple' : 'Double'),
+                    tournament.format == 'single' ? context.read<LocaleProvider>().tr('singles') : context.read<LocaleProvider>().tr('doubles')),
               ],
             ),
             if (tournament.participantNames.isNotEmpty) ...[
@@ -471,7 +474,7 @@ class _TournamentCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Joueurs inscrits (${tournament.participantNames.length}/${tournament.maxParticipants})',
+                            '${context.read<LocaleProvider>().tr('registeredPlayers2')} (${tournament.participantNames.length}/${tournament.maxParticipants})',
                             style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -540,7 +543,7 @@ class _TournamentCard extends StatelessWidget {
               const SizedBox(height: 10),
               ElevatedButton.icon(
                 icon: const Icon(Icons.emoji_events),
-                label: const Text('S\'inscrire'),
+                label: Text(context.read<LocaleProvider>().tr('register2')),
                 onPressed: () => _join(context),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 42),
@@ -557,13 +560,13 @@ class _TournamentCard extends StatelessWidget {
                       color: AppTheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: AppTheme.primary, size: 16),
-                        SizedBox(width: 6),
-                        Text('Inscrit',
-                            style: TextStyle(
+                        const Icon(Icons.check_circle, color: AppTheme.primary, size: 16),
+                        const SizedBox(width: 6),
+                        Text(context.read<LocaleProvider>().tr('registered'),
+                            style: const TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.bold)),
                       ],
@@ -572,7 +575,7 @@ class _TournamentCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.exit_to_app, size: 16),
-                    label: const Text('Se retirer'),
+                    label: Text(context.read<LocaleProvider>().tr('withdraw')),
                     onPressed: () => _withdraw(context),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
@@ -595,13 +598,13 @@ class _TournamentCard extends StatelessWidget {
                     color: AppTheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, color: AppTheme.primary, size: 16),
-                      SizedBox(width: 6),
-                      Text('Inscrit',
-                          style: TextStyle(
+                      const Icon(Icons.check_circle, color: AppTheme.primary, size: 16),
+                      const SizedBox(width: 6),
+                      Text(context.read<LocaleProvider>().tr('registered'),
+                          style: const TextStyle(
                               color: Colors.green,
                               fontWeight: FontWeight.bold)),
                     ],
@@ -662,16 +665,16 @@ class _ParticipantsSheetState extends State<_ParticipantsSheet> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Retirer le participant'),
+        title: Text(context.read<LocaleProvider>().tr('removeParticipant')),
         content: Text('Retirer "$name" du tournoi ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler')),
+              child: Text(context.read<LocaleProvider>().tr('cancel'))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Retirer', style: TextStyle(color: Colors.white)),
+            child: Text(context.read<LocaleProvider>().tr('delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -698,6 +701,7 @@ class _ParticipantsSheetState extends State<_ParticipantsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       minChildSize: 0.4,
@@ -720,7 +724,7 @@ class _ParticipantsSheetState extends State<_ParticipantsSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Joueurs inscrits — ${widget.tournament.name}',
+                    '${locale.tr('registeredPlayers2')} — ${widget.tournament.name}',
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
@@ -783,8 +787,8 @@ class _ParticipantsSheetState extends State<_ParticipantsSheet> {
                               color: Colors.amber.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('Organisateur',
-                                style: TextStyle(
+                            child: Text(locale.tr('organizer'),
+                                style: const TextStyle(
                                     fontSize: 11,
                                     color: Colors.amber,
                                     fontWeight: FontWeight.bold)),
@@ -813,7 +817,7 @@ class _ParticipantsSheetState extends State<_ParticipantsSheet> {
                           color: Colors.grey.shade400, size: 18),
                     ),
                     title: Text(
-                      'Place disponible #${_names.length + i + 1}',
+                      '${locale.tr('freeSpot')} #${_names.length + i + 1}',
                       style: TextStyle(
                           color: Colors.grey.shade400,
                           fontStyle: FontStyle.italic,
