@@ -10,6 +10,7 @@ import '../models/elo_match.dart';
 import '../services/elo_service.dart';
 import '../widgets/elo_tier_badge.dart';
 import 'elo_match_result_screen.dart';
+import 'app_reviews_screen.dart';
 import 'help_screen.dart';
 import 'wallet_screen.dart';
 import 'players_screen.dart';
@@ -262,6 +263,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
+          // Reviews
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AppReviewsScreen())),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.chat_bubble_outline, color: Colors.white),
+            ),
+          ),
           // Help
           InkWell(
             borderRadius: BorderRadius.circular(8),

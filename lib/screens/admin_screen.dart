@@ -9,6 +9,7 @@ import '../models/club.dart';
 import '../models/court.dart';
 import '../state/city_provider.dart';
 import '../services/auth_service.dart';
+import '../services/court_service.dart';
 import '../services/whatsapp_service.dart';
 import '../services/club_service.dart';
 import '../services/geocoding_service.dart';
@@ -45,6 +46,7 @@ class _AdminScreenState extends State<AdminScreen>
   final _courtSearchCtrl = TextEditingController();
   String _userQuery = '';
   String _courtQuery = '';
+  bool _seedingCasaMarrakech = false;
 
   @override
   void initState() {
@@ -77,6 +79,32 @@ class _AdminScreenState extends State<AdminScreen>
       _clubs = results[4] as List<Club>;
       _loading = false;
     });
+  }
+
+  Future<void> _doSeedCasaMarrakech() async {
+    setState(() => _seedingCasaMarrakech = true);
+    try {
+      final svc = CourtService();
+      final added = await svc.seedCasablancaMarrakech();
+      await context.read<CourtProvider>().refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(added > 0
+              ? '$added terrain(s) ajouté(s) avec succès'
+              : 'Tous les terrains existaient déjà'),
+          backgroundColor: added > 0 ? AppTheme.primary : Colors.orange,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur : $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _seedingCasaMarrakech = false);
+    }
   }
 
   Future<void> _toggleBlock(AppUser user) async {
@@ -444,29 +472,54 @@ class _AdminScreenState extends State<AdminScreen>
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: c.isIndoor
-                            ? Colors.blue.withOpacity(0.1)
-                            : Colors.orange.withOpacity(0.1),
+                        color: !c.isActive
+                            ? Colors.grey.withOpacity(0.15)
+                            : c.isIndoor
+                                ? Colors.blue.withOpacity(0.1)
+                                : Colors.orange.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         c.isIndoor ? Icons.home_outlined : Icons.wb_sunny_outlined,
-                        color: c.isIndoor ? Colors.blue : Colors.orange,
+                        color: !c.isActive
+                            ? Colors.grey
+                            : c.isIndoor ? Colors.blue : Colors.orange,
                       ),
                     ),
-                    title: Text(c.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(c.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: c.isActive ? null : Colors.grey,
+                              )),
+                        ),
+                        if (!c.isActive)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text('Désactivé',
+                                style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          ),
+                      ],
+                    ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(c.address,
-                            style: const TextStyle(fontSize: 12),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: c.isActive ? null : Colors.grey),
                             overflow: TextOverflow.ellipsis),
                         Text(
                           '${c.pricePerHour.toStringAsFixed(0)} DH/créneau · ${c.isIndoor ? 'Couvert' : 'Extérieur'} · max ${c.maxReservationsPerSlot}/créneau',
                           style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.primary,
+                              color: c.isActive ? AppTheme.primary : Colors.grey,
                               fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -475,15 +528,39 @@ class _AdminScreenState extends State<AdminScreen>
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined,
-                              color: AppTheme.primary),
-                          onPressed: () => _showCourtForm(c),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: c.isActive,
+                            activeColor: AppTheme.primary,
+                            onChanged: (val) =>
+                                context.read<CourtProvider>().toggleActive(c.id, val),
+                          ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.red),
-                          onPressed: () => _confirmDeleteCourt(c),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, size: 20),
+                          onSelected: (v) {
+                            if (v == 'edit') _showCourtForm(c);
+                            if (v == 'delete') _confirmDeleteCourt(c);
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(children: [
+                                Icon(Icons.edit_outlined, color: AppTheme.primary, size: 18),
+                                SizedBox(width: 8),
+                                Text('Modifier'),
+                              ]),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(children: [
+                                Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                SizedBox(width: 8),
+                                Text('Supprimer', style: TextStyle(color: Colors.red)),
+                              ]),
+                            ),
+                          ],
                         ),
                       ],
                     ),

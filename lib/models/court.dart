@@ -10,6 +10,7 @@ class Court {
   final int maxReservationsPerSlot;
   final String? imageUrl;
   final String city;
+  final bool isActive;
 
   const Court({
     required this.id,
@@ -23,6 +24,7 @@ class Court {
     this.maxReservationsPerSlot = 1,
     this.imageUrl,
     this.city = '',
+    this.isActive = true,
   });
 
   Court copyWith({
@@ -37,6 +39,7 @@ class Court {
     String? imageUrl,
     bool clearImage = false,
     String? city,
+    bool? isActive,
   }) =>
       Court(
         id: id,
@@ -50,6 +53,7 @@ class Court {
         maxReservationsPerSlot: maxReservationsPerSlot ?? this.maxReservationsPerSlot,
         imageUrl: clearImage ? null : (imageUrl ?? this.imageUrl),
         city: city ?? this.city,
+        isActive: isActive ?? this.isActive,
       );
 
   Map<String, dynamic> toMap() => {
@@ -64,6 +68,7 @@ class Court {
         'maxReservationsPerSlot': maxReservationsPerSlot,
         'imageUrl': imageUrl,
         'city': city,
+        'isActive': isActive,
       };
 
   factory Court.fromMap(Map<String, dynamic> m) => Court(
@@ -78,6 +83,7 @@ class Court {
         maxReservationsPerSlot: (m['maxReservationsPerSlot'] as int?) ?? 1,
         imageUrl: m['imageUrl'] as String?,
         city: m['city'] as String? ?? '',
+        isActive: m['isActive'] as bool? ?? true,
       );
 }
 

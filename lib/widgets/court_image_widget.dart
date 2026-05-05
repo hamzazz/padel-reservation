@@ -2,11 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../models/court.dart';
 
-const _courtColors = {
-  'c1': [Color(0xFF1565C0), Color(0xFF0D47A1)],
-  'c2': [Color(0xFF1565C0), Color(0xFF0D47A1)],
-  'c3': [Color(0xFF6A1B9A), Color(0xFF4A148C)],
-  'c4': [Color(0xFF00695C), Color(0xFF004D40)],
+const _cityColors = {
+  'Casablanca': [Color(0xFF0D47A1), Color(0xFF01579B)],
+  'Marrakech':  [Color(0xFFBF360C), Color(0xFFE65100)],
+  'Rabat':      [Color(0xFF1B5E20), Color(0xFF2E7D32)],
 };
 
 class CourtImageWidget extends StatelessWidget {
@@ -22,7 +21,7 @@ class CourtImageWidget extends StatelessWidget {
   });
 
   List<Color> get _colors =>
-      _courtColors[court.id] ??
+      _cityColors[court.city] ??
       [const Color(0xFF1565C0), const Color(0xFF0D47A1)];
 
   @override

@@ -48,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     setState(() => _checkingSlots = true);
-    final courts = context.read<CourtProvider>().courts;
+    final courts = context.read<CourtProvider>().activeCourts;
     final counts = <String, int>{};
     await Future.wait(courts.map((c) async {
       counts[c.id] =
@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allCourts = context.watch<CourtProvider>().courts;
+    final allCourts = context.watch<CourtProvider>().activeCourts;
     final selectedCity = context.watch<CityProvider>().selectedCity;
     final courts = _filtered(allCourts, selectedCity);
     final locale = context.watch<LocaleProvider>();
@@ -479,7 +479,7 @@ class _CourtPickerSheet extends StatelessWidget {
             ],
           ),
           const Divider(height: 16),
-          ...context.read<CourtProvider>().courts.map((c) => _tile(c)),
+          ...context.read<CourtProvider>().activeCourts.map((c) => _tile(c)),
           const SizedBox(height: 4),
         ],
       ),

@@ -203,7 +203,7 @@ class _CourtsTabState extends State<_CourtsTab>
       return;
     }
     setState(() => _checkingSlots = true);
-    final courts = context.read<CourtProvider>().courts;
+    final courts = context.read<CourtProvider>().activeCourts;
     final counts = <String, int>{};
     await Future.wait(courts.map((c) async {
       counts[c.id] = await _resSvc.countSlotReservations(
@@ -335,7 +335,7 @@ class _CourtsTabState extends State<_CourtsTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final allCourts = context.watch<CourtProvider>().courts;
+    final allCourts = context.watch<CourtProvider>().activeCourts;
     final cities = allCourts
         .map((c) => c.city)
         .where((c) => c.isNotEmpty)
@@ -965,7 +965,7 @@ class _CourtPickerSheet extends StatelessWidget {
             ],
           ),
           const Divider(height: 16),
-          ...context.read<CourtProvider>().courts
+          ...context.read<CourtProvider>().activeCourts
               .where((c) => cityFilter.isEmpty || c.city == cityFilter)
               .map((c) => _tile(c)),
           const SizedBox(height: 4),

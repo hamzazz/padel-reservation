@@ -9,10 +9,13 @@ class CourtProvider extends ChangeNotifier {
   bool _loading = true;
 
   List<Court> get courts => _courts;
+  List<Court> get activeCourts => _courts.where((c) => c.isActive).toList();
   bool get loading => _loading;
 
   Future<void> init() async {
     await _svc.seedIfEmpty(availableCourts);
+    await _svc.seedRabat();
+    await _svc.seedCasablancaMarrakech();
     await refresh();
   }
 
@@ -76,6 +79,15 @@ class CourtProvider extends ChangeNotifier {
       if (idx != -1) _courts[idx] = updated;
       notifyListeners();
       rethrow;
+    }
+  }
+
+  Future<void> toggleActive(String courtId, bool isActive) async {
+    await _svc.toggleActive(courtId, isActive);
+    final idx = _courts.indexWhere((c) => c.id == courtId);
+    if (idx != -1) {
+      _courts[idx] = _courts[idx].copyWith(isActive: isActive);
+      notifyListeners();
     }
   }
 

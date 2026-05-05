@@ -66,6 +66,10 @@ class ReviewService {
     return id;
   }
 
+  Future<void> deleteReview(String reviewId) async {
+    await _col.doc(reviewId).delete();
+  }
+
   static Map<String, dynamic> _ts(Map<String, dynamic> map) {
     return map.map((k, v) {
       if (v is Timestamp) return MapEntry(k, v.toDate().toIso8601String());

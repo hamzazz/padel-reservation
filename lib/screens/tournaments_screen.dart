@@ -39,7 +39,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final feeCtrl = TextEditingController(text: '10');
-    final allCourts = context.read<CourtProvider>().courts;
+    final allCourts = context.read<CourtProvider>().activeCourts;
     Court court = allCourts.isNotEmpty ? allCourts.first : const Court(id: '', name: '', description: '', pricePerHour: 0, isIndoor: false, address: '', latitude: 0, longitude: 0);
     int max = 8;
     String format = 'single';

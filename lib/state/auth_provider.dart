@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
@@ -12,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   AppUser? _user;
   int _unreadNotifs = 0;
   bool _loading = true;
+  StreamSubscription? _authSub;
 
   AppUser? get currentUser => _user;
   bool get isLoggedIn => _user != null;
@@ -22,19 +24,28 @@ class AuthProvider extends ChangeNotifier {
   bool get loading => _loading;
 
   Future<void> init() async {
-    _auth.authStateChanges.listen((firebaseUser) async {
+    _authSub = _auth.authStateChanges.listen((firebaseUser) async {
       if (firebaseUser == null) {
         _user = null;
         _unreadNotifs = 0;
         _loading = false;
         notifyListeners();
       } else {
+        // Firebase session is valid — fetch Firestore profile.
+        // On slow/offline start, _getUserDoc falls back to local cache
+        // so the user is never redirected to login due to a network hiccup.
         _user = await _auth.getCurrentUser();
         if (_user != null) await _refreshNotifCount();
         _loading = false;
         notifyListeners();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<String?> login(String email, String password) async {

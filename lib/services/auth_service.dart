@@ -1,8 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_user.dart';
 import 'whatsapp_service.dart';
 
@@ -78,9 +81,7 @@ class AuthService {
       );
       AppUser? user;
       try {
-        user = await _getUserDoc(cred.user!.uid).timeout(
-          const Duration(seconds: 15),
-        );
+        user = await _getUserDoc(cred.user!.uid);
       } catch (firestoreErr) {
         return (user: null, error: 'Connecté mais profil inaccessible. Vérifiez les règles Firestore. Erreur: $firestoreErr');
       }
@@ -193,6 +194,7 @@ class AuthService {
 
   // ── Logout ────────────────────────────────────────────────────────────
   Future<void> logout() async {
+    await _clearUserCache();
     await _googleSignIn.signOut();
     await FacebookAuth.instance.logOut();
     await _auth.signOut();
@@ -200,20 +202,15 @@ class AuthService {
 
   // ── Get current user ──────────────────────────────────────────────────
   Future<AppUser?> getCurrentUser() async {
-    try {
-      final firebaseUser = _auth.currentUser;
-      if (firebaseUser == null) return null;
-      return await _getUserDoc(firebaseUser.uid).timeout(
-        const Duration(seconds: 15),
-      );
-    } catch (_) {
-      return null;
-    }
+    final firebaseUser = _auth.currentUser;
+    if (firebaseUser == null) return null;
+    return await _getUserDoc(firebaseUser.uid);
   }
 
   // ── Update user profile ───────────────────────────────────────────────
   Future<void> updateUser(AppUser updated) async {
     await _users.doc(updated.id).set(updated.toMap());
+    unawaited(_cacheUserLocally(updated));
   }
 
   // ── Get all users ────────────────────────────────────────────────────
@@ -357,10 +354,53 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // ── Helpers ───────────────────────────────────────────────────────────
+
+  static const _kUserCacheKey = 'padel_user_cache';
+
+  Future<void> _cacheUserLocally(AppUser user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kUserCacheKey, jsonEncode(user.toMap()));
+    } catch (_) {}
+  }
+
+  Future<AppUser?> _loadUserLocally(String uid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kUserCacheKey);
+      if (raw == null) return null;
+      final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      final user = AppUser.fromMap(map);
+      return user.id == uid ? user : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _clearUserCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kUserCacheKey);
+    } catch (_) {}
+  }
+
   Future<AppUser?> _getUserDoc(String uid) async {
-    final doc = await _users.doc(uid).get();
-    if (!doc.exists) return null;
-    return AppUser.fromMap(_toMap(doc));
+    // 1. Try Firestore server
+    try {
+      final doc = await _users.doc(uid).get();
+      if (!doc.exists) return null;
+      final user = AppUser.fromMap(_toMap(doc));
+      unawaited(_cacheUserLocally(user)); // Keep local cache fresh
+      return user;
+    } catch (_) {}
+    // 2. Try Firestore local cache (works offline if previously loaded)
+    try {
+      final doc = await _users.doc(uid).get(const GetOptions(source: Source.cache));
+      if (!doc.exists) return null;
+      return AppUser.fromMap(_toMap(doc));
+    } catch (_) {}
+    // 3. Last resort: SharedPreferences — user stays logged in
+    return _loadUserLocally(uid);
   }
 
   Map<String, dynamic> _toMap(DocumentSnapshot<Map<String, dynamic>> doc) {

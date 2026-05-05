@@ -3,6 +3,7 @@ class Product {
   final String sellerId;
   final String sellerName;
   final String sellerEmoji;
+  final String sellerPhone;
   final String title;
   final String description;
   final double price;
@@ -17,6 +18,7 @@ class Product {
     required this.sellerId,
     required this.sellerName,
     required this.sellerEmoji,
+    this.sellerPhone = '',
     required this.title,
     required this.description,
     required this.price,
@@ -32,6 +34,7 @@ class Product {
         'sellerId': sellerId,
         'sellerName': sellerName,
         'sellerEmoji': sellerEmoji,
+        'sellerPhone': sellerPhone,
         'title': title,
         'description': description,
         'price': price,
@@ -47,6 +50,7 @@ class Product {
         sellerId: m['sellerId'],
         sellerName: m['sellerName'],
         sellerEmoji: m['sellerEmoji'] ?? '🎾',
+        sellerPhone: m['sellerPhone'] as String? ?? '',
         title: m['title'],
         description: m['description'],
         price: (m['price'] as num).toDouble(),

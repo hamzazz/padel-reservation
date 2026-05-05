@@ -170,7 +170,7 @@ class _MatchesScreenState extends State<MatchesScreen>
           ),
           // Filtre par ville
           Builder(builder: (ctx) {
-            final courts = ctx.read<CourtProvider>().courts;
+            final courts = ctx.read<CourtProvider>().activeCourts;
             final cities = courts
                 .map((c) => c.city)
                 .where((c) => c.isNotEmpty)

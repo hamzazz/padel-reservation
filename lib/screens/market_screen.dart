@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/product.dart';
 import '../services/market_service.dart';
 import '../state/auth_provider.dart';
@@ -213,6 +214,7 @@ class _MarketScreenState extends State<MarketScreen>
                               sellerId: user.id,
                               sellerName: user.fullName,
                               sellerEmoji: user.avatarEmoji,
+                              sellerPhone: user.phone,
                               title: titleCtrl.text.trim(),
                               description: descCtrl.text.trim(),
                               price: double.parse(priceCtrl.text),
@@ -386,6 +388,32 @@ class _ProductCard extends StatelessWidget {
     this.onDelete,
   });
 
+  Future<void> _openWhatsApp(BuildContext context) async {
+    final phone = product.sellerPhone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Numéro non disponible')));
+      return;
+    }
+    final msg = Uri.encodeComponent(
+        'Bonjour, je suis intéressé par votre annonce : ${product.title} (${product.price.toStringAsFixed(0)} DH)');
+    final uri = Uri.parse('https://wa.me/$phone?text=$msg');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _call(BuildContext context) async {
+    final phone = product.sellerPhone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Numéro non disponible')));
+      return;
+    }
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -464,39 +492,72 @@ class _ProductCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${product.price.toStringAsFixed(2)} DH',
+                    Text('${product.price.toStringAsFixed(0)} DH',
                         style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primary)),
-                    if (isMine)
-                      Row(
-                        children: [
-                          TextButton(
-                            onPressed: onSold,
-                            child: const Text('Marquer vendu'),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                color: Colors.red, size: 20),
-                            onPressed: onDelete,
-                          ),
-                        ],
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(product.category,
-                            style: const TextStyle(
-                                fontSize: 11, color: Colors.grey)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: Text(product.category,
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey)),
+                    ),
                   ],
                 ),
+                if (isMine) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: onSold,
+                        child: const Text('Marquer vendu'),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.red, size: 20),
+                        onPressed: onDelete,
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.phone_outlined, size: 16),
+                          label: const Text('Appeler'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            side: const BorderSide(color: AppTheme.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          onPressed: () => _call(context),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.chat, size: 16),
+                          label: const Text('WhatsApp'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF25D366),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          onPressed: () => _openWhatsApp(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

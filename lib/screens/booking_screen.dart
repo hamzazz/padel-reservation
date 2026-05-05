@@ -40,7 +40,7 @@ class _BookingScreenState extends State<BookingScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final courts = context.read<CourtProvider>().courts;
+      final courts = context.read<CourtProvider>().activeCourts;
       if (_selectedCourt == null && courts.isNotEmpty) {
         setState(() => _selectedCourt = widget.preselectedCourt ?? courts.first);
       }
@@ -304,7 +304,7 @@ class _BookingScreenState extends State<BookingScreen> {
     return DropdownButtonFormField<Court>(
       value: _selectedCourt,
       decoration: const InputDecoration(prefixIcon: Icon(Icons.sports_tennis)),
-      items: context.read<CourtProvider>().courts
+      items: context.read<CourtProvider>().activeCourts
           .map((c) => DropdownMenuItem(
                 value: c,
                 child: Text('${c.name} — ${c.pricePerHour.toStringAsFixed(0)}DH'),

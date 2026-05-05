@@ -171,7 +171,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     _addUserMsg(label);
 
     final city = context.read<CityProvider>().selectedCity;
-    final allCourts = context.read<CourtProvider>().courts;
+    final allCourts = context.read<CourtProvider>().activeCourts;
     final filtered = allCourts.where((c) {
       if (c.city.isNotEmpty && c.city != city) return false;
       return true;
@@ -192,7 +192,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     _scrollToBottom();
 
     final city = context.read<CityProvider>().selectedCity;
-    final allCourts = context.read<CourtProvider>().courts;
+    final allCourts = context.read<CourtProvider>().activeCourts;
     final filtered = allCourts.where((c) {
       if (c.city.isNotEmpty && c.city != city) return false;
       return true;
@@ -235,7 +235,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     _scrollToBottom();
 
     final city = context.read<CityProvider>().selectedCity;
-    final allCourts = context.read<CourtProvider>().courts;
+    final allCourts = context.read<CourtProvider>().activeCourts;
     final filtered = allCourts.where((c) {
       if (c.city.isNotEmpty && c.city != city) return false;
       return true;
