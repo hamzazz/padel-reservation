@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +13,8 @@ import 'whatsapp_service.dart';
 class AuthService {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
-  final _googleSignIn = GoogleSignIn();
+  // Google Sign-In requires a clientId on web — disabled on web for now
+  final GoogleSignIn? _googleSignIn = kIsWeb ? null : GoogleSignIn();
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
@@ -109,10 +111,13 @@ class AuthService {
 
   // ── Google Sign-In ────────────────────────────────────────────────────
   Future<({AppUser? user, String? error})> loginWithGoogle() async {
+    if (_googleSignIn == null) {
+      return (user: null, error: 'Google Sign-In non disponible sur web');
+    }
     try {
-      final googleUser = await _googleSignIn.signIn();
+      final googleUser = await _googleSignIn!.signIn();
       if (googleUser == null) return (user: null, error: 'Annulé');
-      final googleAuth = await googleUser.authentication;
+      final googleAuth = await googleUser!.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -195,7 +200,7 @@ class AuthService {
   // ── Logout ────────────────────────────────────────────────────────────
   Future<void> logout() async {
     await _clearUserCache();
-    await _googleSignIn.signOut();
+    await _googleSignIn?.signOut();
     await FacebookAuth.instance.logOut();
     await _auth.signOut();
   }
